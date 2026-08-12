@@ -558,6 +558,9 @@ def remove_password():
 # --------------------------------------------------------------------------
 @app.route("/<esp_id>/card/<card_id>/manifest.json")
 def card_manifest(esp_id, card_id):
+    if not manifest_lib.is_valid_card_id(card_id):
+        return jsonify(error="invalid_card_id"), 400
+
     ts = store_lib.now_iso()
     store.touch_device(esp_id, request.remote_addr, card_id, ts)
 

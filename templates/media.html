@@ -5,11 +5,11 @@
 {% block content %}
 <section class="page-head">
 	<h1>{{ _('Media') }}</h1>
-	<p class="muted">{{ _('Storage usage per card. Uploads happen right in the card assignment form.') }}</p>
+	<p class="muted">{{ _('Storage usage per card. Files are selected from the mounted media library in the card assignment form.') }}</p>
 </section>
 
 {% if not rows %}
-	<p class="empty-state">{{ _('No media files uploaded yet.') }}</p>
+	<p class="empty-state">{{ _('No media files assigned yet.') }}</p>
 {% else %}
 	<div class="table-wrap">
 		<table>

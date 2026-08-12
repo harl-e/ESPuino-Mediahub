@@ -31,7 +31,7 @@
 	<a class="card" href="{{ url_for('media_overview') }}">
 		<div class="card-icon">📁</div>
 		<h2>{{ _('Media') }}</h2>
-		<p>{{ _('Storage usage per card; uploads happen right in the assignment form.') }}</p>
+		<p>{{ _('Storage usage per card; files are selected from the mounted media library.') }}</p>
 		<span class="badge">{{ (total_bytes / 1048576) | round(1) }}&nbsp;MB</span>
 	</a>
 
