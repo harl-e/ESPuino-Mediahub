@@ -97,7 +97,16 @@ def set_language(lang_code):
 # entirely, revised to make it optional since the hub may be reachable
 # beyond a single trusted household).
 # --------------------------------------------------------------------------
-PUBLIC_ENDPOINTS = {"login", "set_language", "health", "card_manifest", "serve_media", "static"}
+PUBLIC_ENDPOINTS = {
+    "login",
+    "set_language",
+    "health",
+    "card_resolve",
+    "card_seen",
+    "card_manifest",
+    "serve_media",
+    "static",
+}
 
 
 @app.before_request
@@ -556,8 +565,53 @@ def remove_password():
 # --------------------------------------------------------------------------
 # MediaHub API (see mediahub-konzept.md §6/§7)
 # --------------------------------------------------------------------------
+@app.route("/<esp_id>/card/<card_id>/resolve")
+def card_resolve(esp_id, card_id):
+    """Report an assignment without creating or updating any hub state.
+
+    AutoSync probes configured hubs in priority order.  This endpoint must
+    therefore remain side-effect-free: querying a lower-priority hub must not
+    create a pending card merely because that hub does not own the card.
+    """
+    if not manifest_lib.is_valid_card_id(card_id):
+        return jsonify(error="invalid_card_id"), 400
+
+    card = store.get_card(esp_id, card_id)
+    assigned = card is not None and card.get("status") == "assigned"
+    return jsonify(assigned=assigned, status="assigned" if assigned else "not_assigned")
+
+
+@app.route("/<esp_id>/card/<card_id>/seen", methods=["POST"])
+def card_seen(esp_id, card_id):
+    """Create/refresh a pending card after all AutoSync probes missed.
+
+    Keeping this separate from ``resolve`` means a multi-hub lookup can be
+    safe while preserving the original pending-card enrollment behaviour.
+    """
+    if not manifest_lib.is_valid_card_id(card_id):
+        return jsonify(error="invalid_card_id"), 400
+
+    ts = store_lib.now_iso()
+    store.touch_device(esp_id, request.remote_addr, card_id, ts)
+    card = store.get_card(esp_id, card_id)
+    if card is None:
+        card = store.register_pending(esp_id, card_id, ts)
+    else:
+        card = store.touch_card_seen(esp_id, card_id, ts)
+
+    return jsonify(
+        assigned=card.get("status") == "assigned",
+        status=card.get("status"),
+        first_seen_at=card.get("first_seen"),
+        last_seen_at=card.get("last_seen"),
+    )
+
+
 @app.route("/<esp_id>/card/<card_id>/manifest.json")
 def card_manifest(esp_id, card_id):
+    if not manifest_lib.is_valid_card_id(card_id):
+        return jsonify(error="invalid_card_id"), 400
+
     ts = store_lib.now_iso()
     store.touch_device(esp_id, request.remote_addr, card_id, ts)
 
