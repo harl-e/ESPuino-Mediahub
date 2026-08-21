@@ -111,8 +111,14 @@ def add_card():
 @app.route("/cards/<card_id>/assign", methods=["GET", "POST"])
 @app.route("/cards/<card_id>/overrides/<esp_id>/assign", methods=["GET", "POST"])
 def assign_card(card_id, esp_id=None):
-    if not manifest_lib.is_valid_card_id(card_id): abort(404)
-    tag = store.get_tag(card_id) or {"card_id": card_id, "default_assignment": None, "overrides": {}}
+    # Firmware IDs are always twelve digits, but an already persisted legacy
+    # tag must remain viewable and editable even when its historical ID does
+    # not satisfy that protocol validation. New tags still enter through
+    # add_card(), which validates the format before this route is reached.
+    tag = store.get_tag(card_id)
+    if tag is None and not manifest_lib.is_valid_card_id(card_id): abort(404)
+    tag = tag or {"card_id": str(card_id), "default_assignment": None, "overrides": {}}
+    card_id = str(tag.get("card_id") or card_id)
     is_global = esp_id is None
     assignment = tag.get("default_assignment") if is_global else tag.get("overrides", {}).get(esp_id)
     assignment = assignment or {"name": tag.get("name", ""), "kind": "files", "play_mode": None, "stream_url": "", "folders": [], "files": []}

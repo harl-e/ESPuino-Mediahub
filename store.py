@@ -65,6 +65,33 @@ class Store:
                     if tag.get("card_id") != card_id:
                         tag["card_id"] = card_id
                         normalized += 1
+                    if "default_assignment" not in tag and "defaultAssignment" in tag:
+                        tag["default_assignment"] = tag["defaultAssignment"]
+                        normalized += 1
+                    # The released v2 shape uses a dictionary keyed by
+                    # esp_id. Accept the earlier list-shaped draft as well
+                    # so a legacy tag with no global assignment can still be
+                    # rendered and edited instead of failing in Jinja.
+                    overrides = tag.get("overrides") or {}
+                    if isinstance(overrides, list):
+                        overrides = {
+                            str(item.get("esp_id") or item.get("espId")): item
+                            for item in overrides if isinstance(item, dict) and (item.get("esp_id") or item.get("espId"))
+                        }
+                        normalized += 1
+                    if isinstance(overrides, dict):
+                        string_keys = {str(esp_id): assignment for esp_id, assignment in overrides.items()}
+                        if string_keys != overrides:
+                            overrides = string_keys
+                            normalized += 1
+                    else:
+                        log.warning("MediaHub: invalid overrides for v2 card %s; treating as empty", card_id)
+                        overrides = {}
+                        normalized += 1
+                    tag["overrides"] = overrides
+                    tag.setdefault("default_assignment", None)
+                    tag.setdefault("seen_by", {})
+                    tag.setdefault("name", "")
                     if key != card_id and card_id not in cards:
                         cards[card_id] = tag
                         del cards[key]
@@ -72,8 +99,10 @@ class Store:
                 return (normalized, 0)
             tags, assignments = {}, 0
             for key, old in data.get("cards", {}).items():
-                card_id = str(old.get("card_id") or key.rsplit("/", 1)[-1])
-                esp_id = old.get("esp_id") or old.get("last_seen_esp_id")
+                card_id = str(old.get("card_id") or old.get("cardId") or key.rsplit("/", 1)[-1])
+                esp_id = old.get("esp_id") or old.get("espId") or old.get("last_seen_esp_id")
+                if esp_id is not None:
+                    esp_id = str(esp_id)
                 if not card_id:
                     log.warning("MediaHub: skipping corrupt legacy card %r (no card_id)", key); continue
                 tag = tags.setdefault(card_id, {"card_id": card_id, "status": "pending", "name": old.get("name", ""), "default_assignment": None, "overrides": {}, "seen_by": {}, "first_seen": old.get("first_seen"), "last_seen": old.get("last_seen"), "created_at": old.get("created_at", now_iso()), "updated_at": old.get("updated_at", now_iso())})
