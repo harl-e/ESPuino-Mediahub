@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Card') }} {{ tag.card_id }} · ESPuino MediaHub{% endblock %}
+
+{% block content %}
+<section class="page-head">
+	<div class="page-head-row">
+		<div>
+			<h1>{{ _('RFID tag') }} <code>{{ tag.card_id }}</code></h1>
+			<p class="muted">{{ tag.name or _('No display name') }}</p>
+		</div>
+		<div class="page-head-actions">
+			<form method="post" action="{{ url_for('force_refresh_card', card_id=tag.card_id, **request.args) }}">
+				<button class="btn btn-secondary" type="submit">{{ _('Force refresh') }}</button>
+			</form>
+			<a class="btn btn-secondary" href="{{ url_for('cards', **request.args) }}">{{ _('Back') }}</a>
+		</div>
+	</div>
+</section>
+
+<section class="tag-detail-section form-section">
+	<div class="page-head-row">
+		<h2>{{ _('Global assignment') }}</h2>
+		<a class="btn btn-small" href="{{ url_for('assign_card', card_id=tag.card_id, **request.args) }}">
+			{{ _('Edit') if tag.default_assignment else _('Add global assignment') }}
+		</a>
+	</div>
+	{% if tag.default_assignment %}
+		<p>{{ content_label(tag.default_assignment) }}</p>
+		<p class="muted">{{ _('Valid for all ESPuinos') }} · {{ tag.default_assignment.name or '—' }}</p>
+	{% else %}
+		<p class="muted">{{ _('This tag is not globally valid.') }}</p>
+	{% endif %}
+</section>
+
+<section class="tag-detail-section form-section">
+	<div class="page-head-row">
+		<h2>{{ _('Overrides') }}</h2>
+		<select aria-label="{{ _('Add override') }}" onchange="if(this.value) location.href='{{ url_for('card_detail', card_id=tag.card_id) }}/overrides/'+encodeURIComponent(this.value)+'/assign'">
+			<option value="">{{ _('Add override') }}</option>
+			{% for id, device in devices.items() if id not in tag.overrides %}
+			<option value="{{ id }}">{{ device.alias or id }}</option>
+			{% endfor %}
+		</select>
+	</div>
+	{% if tag.overrides %}
+		<div class="table-wrap">
+			<table class="assignment-table">
+				<thead><tr><th>{{ _('ESPuino') }}</th><th>{{ _('Effective assignment') }}</th><th>{{ _('Source') }}</th><th></th></tr></thead>
+				<tbody>
+					{% for id, assignment in tag.overrides.items() %}
+					<tr>
+						<td class="technical-id">{{ devices.get(id, {}).alias or id }}</td>
+						<td class="content-cell">{{ content_label(assignment) }}</td>
+						<td>{{ _('Override') }}</td>
+						<td class="table-actions">
+							<a class="btn btn-small" href="{{ url_for('assign_card', card_id=tag.card_id, esp_id=id, **request.args) }}">{{ _('Edit') }}</a>
+							<form method="post" action="{{ url_for('delete_override', card_id=tag.card_id, esp_id=id, **request.args) }}" class="confirm-form" data-confirm="{{ _('Delete this override? This ESPuino will use the global assignment if one exists.') }}">
+								<button class="btn btn-small btn-danger" type="submit">{{ _('Delete') }}</button>
+							</form>
+						</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	{% else %}
+		<p class="muted">{{ _('No ESPuino-specific assignments.') }}</p>
+	{% endif %}
+</section>
+
+{% if tag.default_assignment and devices %}
+<section class="tag-detail-section form-section">
+	<h2>{{ _('Effective assignments') }}</h2>
+	<div class="table-wrap">
+		<table class="assignment-table">
+			<thead><tr><th>{{ _('ESPuino') }}</th><th>{{ _('Effective assignment') }}</th><th>{{ _('Source') }}</th></tr></thead>
+			<tbody>
+				{% for id, device in devices.items() %}
+				{% set own = tag.overrides.get(id) %}
+				<tr><td class="technical-id">{{ device.alias or id }}</td><td class="content-cell">{{ content_label(own or tag.default_assignment) }}</td><td>{{ _('Override') if own else _('Global assignment') }}</td></tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+</section>
+{% endif %}
+{% endblock %}
