@@ -23,7 +23,10 @@ services:
       # Your own existing audio library, browsed and referenced in place —
       # MediaHub never writes here, just point this at wherever your music/
       # audiobook files already live. Read-only is enough (and enforced).
-      - ./media:/media:ro
+      # The Docker host mounts the NAS; MediaHub merely receives that host
+      # path as a read-only bind mount.  Do not put production media in Git
+      # or copy it into the image.
+      - ${MEDIAHUB_MEDIA_HOST:-./media}:/media:ro
     environment:
       - MEDIAHUB_DATA=/data
       - MEDIAHUB_MEDIA=/media

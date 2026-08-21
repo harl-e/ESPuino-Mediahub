@@ -1,6 +1,7 @@
 data/
 media/
 **/__pycache__/
+.pytest_cache/
 *.pyc
 .git
 .gitignore
