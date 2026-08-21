@@ -467,6 +467,14 @@ td code, .file-list code {
 	color: var(--text);
 }
 
+.mh-manifest-panel {
+	margin-top: 4px;
+}
+
+.mh-manifest-panel .mh-manifest-json {
+	max-width: 100%;
+}
+
 /* --- Status badges (table variants; the dashboard tile badge is above) --- */
 .badge-ok {
 	color: #16a34a;

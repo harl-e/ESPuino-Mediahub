@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ESPuino MediaHub\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-21 19:07+0200\n"
+"POT-Creation-Date: 2026-08-21 20:32+0200\n"
 "PO-Revision-Date: 2026-07-15 09:43+0200\n"
 "Last-Translator: ESPuino MediaHub\n"
 "Language: fr\n"
@@ -117,27 +117,27 @@ msgstr[1] "Actualisation forcée déclenchée pour %(num)s assignations."
 msgid "Force refresh triggered for all %(num)s assignments."
 msgstr "Actualisation forcée déclenchée pour les %(num)s cartes."
 
-#: app.py:200
+#: app.py:201
 msgid "Recursion depth must be between 0 and 20."
 msgstr "La profondeur de récursion doit être comprise entre 0 et 20."
 
-#: app.py:201
+#: app.py:202
 msgid "Settings saved."
 msgstr "Paramètres enregistrés."
 
-#: app.py:206
+#: app.py:207
 msgid "Please enter a password."
 msgstr "Veuillez saisir un mot de passe."
 
-#: app.py:207
+#: app.py:208
 msgid "Passwords do not match."
 msgstr "Les mots de passe ne correspondent pas."
 
-#: app.py:208
+#: app.py:209
 msgid "Hub password set."
 msgstr "Mot de passe du hub défini."
 
-#: app.py:211
+#: app.py:212
 msgid "Hub password removed."
 msgstr "Mot de passe du hub supprimé."
 
@@ -248,68 +248,97 @@ msgstr "Actualisation forcée"
 msgid "Back"
 msgstr ""
 
-#: templates/card_detail.html:23 templates/card_detail.html:81
-#: templates/cards.html:21 templates/media.html:3
+#: templates/card_detail.html:24 templates/cards.html:73
+msgid "Manifest"
+msgstr ""
+
+#: templates/card_detail.html:25
+msgid "Preview of the effective manifest sent to the selected ESPuino."
+msgstr ""
+
+#: templates/card_detail.html:30
+msgid "Manifest for"
+msgstr ""
+
+#: templates/card_detail.html:31 templates/card_detail.html:52
+#: templates/card_detail.html:110 templates/cards.html:21
+#: templates/media.html:3
 msgid "Global assignment"
 msgstr "Assignation globale"
 
-#: templates/card_detail.html:25 templates/card_detail.html:57
+#: templates/card_detail.html:38
+msgid "For this ESPuino there is no valid media assignment."
+msgstr ""
+
+#: templates/card_detail.html:39
+msgid "Could not load the manifest."
+msgstr ""
+
+#: templates/card_detail.html:39
+msgid "Show manifest"
+msgstr ""
+
+#: templates/card_detail.html:46
+msgid "There is no valid media assignment for this tag yet."
+msgstr ""
+
+#: templates/card_detail.html:54 templates/card_detail.html:86
 msgid "Edit"
 msgstr "Modifier"
 
-#: templates/card_detail.html:25
+#: templates/card_detail.html:54
 msgid "Add global assignment"
 msgstr "Ajouter une assignation globale"
 
-#: templates/card_detail.html:30
+#: templates/card_detail.html:59
 msgid "Valid for all ESPuinos"
 msgstr "Valable pour tous les ESPuinos"
 
-#: templates/card_detail.html:32
+#: templates/card_detail.html:61
 msgid "This tag is not globally valid."
 msgstr ""
 
-#: templates/card_detail.html:38
+#: templates/card_detail.html:67
 msgid "Overrides"
 msgstr "Dérogations"
 
-#: templates/card_detail.html:39 templates/card_detail.html:40
+#: templates/card_detail.html:68 templates/card_detail.html:69
 msgid "Add override"
 msgstr "Ajouter une dérogation"
 
-#: templates/card_detail.html:49 templates/card_detail.html:77
+#: templates/card_detail.html:78 templates/card_detail.html:106
 #: templates/cards.html:39
 msgid "ESPuino"
 msgstr "ESPuino"
 
-#: templates/card_detail.html:49 templates/card_detail.html:77
+#: templates/card_detail.html:78 templates/card_detail.html:106
 msgid "Effective assignment"
 msgstr "Assignation effective"
 
-#: templates/card_detail.html:49 templates/card_detail.html:77
+#: templates/card_detail.html:78 templates/card_detail.html:106
 msgid "Source"
 msgstr "Source"
 
-#: templates/card_detail.html:55 templates/card_detail.html:81
+#: templates/card_detail.html:84 templates/card_detail.html:110
 msgid "Override"
 msgstr "Dérogation"
 
-#: templates/card_detail.html:58
+#: templates/card_detail.html:87
 msgid ""
 "Delete this override? This ESPuino will use the global assignment if one "
 "exists."
 msgstr ""
 
-#: templates/card_detail.html:59 templates/cards.html:74
+#: templates/card_detail.html:88 templates/cards.html:75
 #: templates/devices.html:39
 msgid "Delete"
 msgstr "Supprimer"
 
-#: templates/card_detail.html:68
+#: templates/card_detail.html:97
 msgid "No ESPuino-specific assignments."
 msgstr ""
 
-#: templates/card_detail.html:74
+#: templates/card_detail.html:103
 msgid "Effective assignments"
 msgstr "Assignations effectives"
 
@@ -498,7 +527,7 @@ msgstr[1] ""
 msgid "Manage"
 msgstr "Gérer"
 
-#: templates/cards.html:73
+#: templates/cards.html:74
 #, python-format
 msgid "Really delete card %(id)s?"
 msgstr "Vraiment supprimer la carte %(id)s ?"
