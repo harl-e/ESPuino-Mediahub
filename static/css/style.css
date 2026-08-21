@@ -377,7 +377,8 @@ table {
 th, td {
 	text-align: left;
 	padding: 12px 16px;
-	white-space: nowrap;
+	white-space: normal;
+	vertical-align: top;
 }
 
 thead th {
@@ -417,6 +418,37 @@ td code, .file-list code {
 }
 
 .table-actions form { display: inline; }
+
+/* Tag and device lists deliberately keep the established table component,
+   but let long technical values use the available desktop width instead of
+   forcing the page/table wider than its container. */
+.cards-table,
+.devices-table {
+	table-layout: fixed;
+}
+
+.cards-table th:nth-child(1) { width: 19%; }
+.cards-table th:nth-child(2) { width: 31%; }
+.cards-table th:nth-child(3) { width: 18%; }
+.cards-table th:nth-child(4) { width: 16%; }
+.cards-table th:nth-child(5) { width: 16%; }
+
+.devices-table th:nth-child(1) { width: 24%; }
+.devices-table th:nth-child(2) { width: 30%; }
+.devices-table th:nth-child(3) { width: 25%; }
+.devices-table th:nth-child(4) { width: 9%; }
+.devices-table th:nth-child(5) { width: 12%; }
+
+.technical-id,
+.technical-id code,
+.content-cell {
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.content-cell {
+	min-width: 0;
+}
 
 .mh-manifest-row td {
 	background: var(--bg);
@@ -594,6 +626,36 @@ input[type="file"]:focus,
 .form-actions {
 	display: flex;
 	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.card-filter-form {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 16px;
+}
+
+.card-filter-form input[type="text"] {
+	min-width: 0;
+	flex: 1 1 220px;
+}
+
+.tag-detail-section {
+	margin-bottom: 28px;
+}
+
+.tag-detail-section h2 {
+	margin: 0;
+	font-size: 1.15rem;
+}
+
+@media (max-width: 700px) {
+	.cards-table,
+	.devices-table { table-layout: auto; }
+	th, td { padding: 10px 12px; }
+	.add-card-form input[type="text"] { width: 100%; }
 }
 
 /* --- Media library tree browser --- */

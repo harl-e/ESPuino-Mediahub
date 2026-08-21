@@ -10,11 +10,13 @@ costs nothing) rather than carrying a cached value that could go stale.
 
 import hashlib
 import json
+import logging
 import re
 
 from flask_babel import gettext as _
 
 WEBSTREAM_PLAY_MODE = 8
+log = logging.getLogger(__name__)
 
 # SINGLE_TRACK / SINGLE_TRACK_LOOP (values.h) play back exactly one file —
 # unlike e.g. SINGLE_TRACK_OF_DIR_RANDOM, which needs a whole folder as the
@@ -97,7 +99,37 @@ def _canonical_json(obj):
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def build_manifest(card_id, card, files_base_url):
+def resolve_files(assignment, media_dir, recursion_depth):
+    """Expand stored folder sources only when creating a manifest.
+
+    Assignment JSON deliberately contains paths, not a frozen file listing.
+    Folders preserve their configured order, then explicit files are appended;
+    an ordered set removes overlaps without changing playlist order.
+    """
+    import media_library  # avoids importing file-system code for webradio
+    paths, seen = [], set()
+    recursive = assignment.get("play_mode") in RECURSIVE_PLAY_MODES
+    for folder in assignment.get("folders", []):
+        folder_paths = (media_library.list_audio_files_recursive(media_dir, folder, recursion_depth)
+                        if recursive else media_library.list_audio_files_in_directory(media_dir, folder))
+        if not folder_paths:
+            log.warning("MediaHub: assigned folder is missing, unreadable, or contains no audio: %s", folder)
+        for path in folder_paths:
+            if path not in seen: paths.append(path); seen.add(path)
+    for path in assignment.get("files", []):
+        path = path.get("path") if isinstance(path, dict) else path
+        if path not in seen: paths.append(path); seen.add(path)
+    files = []
+    for path in paths:
+        info = media_library.stat_and_hash(media_dir, path)
+        if info is None:
+            log.warning("MediaHub: assigned audio file is missing or unreadable: %s", path)
+        else:
+            files.append(info)
+    return files
+
+
+def build_manifest(card_id, card, files_base_url, media_dir=None, recursion_depth=0):
     """Builds the public manifest (with `version`) for an assigned card."""
     if card["kind"] == "webradio":
         body = {
@@ -116,7 +148,7 @@ def build_manifest(card_id, card, files_base_url):
             "filesBaseUrl": files_base_url,
             "files": [
                 {"path": f["path"], "size": f["size"], "sha256": f["sha256"]}
-                for f in card.get("files", [])
+                for f in (resolve_files(card, media_dir, recursion_depth) if media_dir else card.get("files", []))
             ],
         }
 

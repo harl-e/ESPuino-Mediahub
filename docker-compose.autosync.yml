@@ -1,0 +1,9 @@
+# Local side-by-side instance for the Autosync worktree.
+# Use together with docker-compose.yml; its separate image, container name,
+# project name and host port keep it independent from the main MediaHub.
+services:
+  mediahub:
+    image: espuino-mediahub-autosync
+    container_name: espuino-mediahub-autosync
+    ports: !override
+      - "8081:8080"
