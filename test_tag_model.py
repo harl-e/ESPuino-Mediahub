@@ -2,6 +2,7 @@
 import json
 import os
 import importlib
+import re
 import sys
 import tempfile
 import unittest
@@ -97,6 +98,20 @@ class TagModelTests(unittest.TestCase):
         }}
         module = self._load_app(early_v2)
         self.assertEqual(module.app.test_client().get("/cards/123456789012").status_code, 200)
+
+    def test_migrated_legacy_assignment_with_existing_nonstandard_id_is_editable(self):
+        legacy_card_id = "123456789"
+        old = {"settings": {}, "devices": {}, "cards": {
+            "ESP_A/123456789": {"esp_id": "ESP_A", "card_id": legacy_card_id, "status": "assigned", "name": "Legacy", "kind": "files", "play_mode": 5, "files": []},
+        }}
+        module = self._load_app(old)
+        client = module.app.test_client()
+        overview = client.get("/cards")
+        detail_link = re.search(r'href="([^"]*' + legacy_card_id + r'[^"]*)"', overview.get_data(as_text=True)).group(1)
+        detail = client.get(detail_link)
+        self.assertEqual(detail.status_code, 200)
+        self.assertIn(b"ESP_A", detail.data)
+        self.assertEqual(client.get(f"/cards/{legacy_card_id}/overrides/ESP_A/assign").status_code, 200)
 
     def test_manifest_preview_uses_effective_assignment_and_folder_expansion(self):
         module = self._load_app()
