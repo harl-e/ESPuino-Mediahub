@@ -18,6 +18,35 @@
 	</div>
 </section>
 
+<section id="manifest" class="tag-detail-section form-section">
+	<div class="page-head-row">
+		<div>
+			<h2>{{ _('Manifest') }}</h2>
+			<p class="muted">{{ _('Preview of the effective manifest sent to the selected ESPuino.') }}</p>
+		</div>
+		{% if tag.default_assignment or tag.overrides %}
+		<div class="page-head-actions">
+			{% if tag.default_assignment and tag.overrides or not tag.default_assignment and tag.overrides|length > 1 %}
+			<select id="manifest-target" aria-label="{{ _('Manifest for') }}">
+				{% if tag.default_assignment %}<option value="">{{ _('Global assignment') }}</option>{% endif %}
+				{% for id, assignment in tag.overrides.items() %}<option value="{{ id }}">{{ devices.get(id, {}).alias or id }}</option>{% endfor %}
+			</select>
+			{% endif %}
+			<button id="manifest-preview-button" type="button" class="btn btn-secondary mh-manifest-btn"
+				data-url="{{ url_for('manifest_preview', card_id=tag.card_id) }}"
+				data-default-target="{{ '' if tag.default_assignment else (tag.overrides | list | first) }}"
+				data-empty="{{ _('For this ESPuino there is no valid media assignment.') }}"
+				data-load-error="{{ _('Could not load the manifest.') }}">{{ _('Show manifest') }}</button>
+		</div>
+		{% endif %}
+	</div>
+	{% if tag.default_assignment or tag.overrides %}
+	<div id="manifest-preview-panel" class="table-wrap mh-manifest-panel" hidden><pre class="mh-manifest-json"></pre></div>
+	{% else %}
+	<p class="muted">{{ _('There is no valid media assignment for this tag yet.') }}</p>
+	{% endif %}
+</section>
+
 <section class="tag-detail-section form-section">
 	<div class="page-head-row">
 		<h2>{{ _('Global assignment') }}</h2>
@@ -85,4 +114,8 @@
 	</div>
 </section>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/manifest-preview.js') }}" defer></script>
 {% endblock %}

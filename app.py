@@ -169,7 +169,8 @@ def force_refresh_all():
 def manifest_preview(card_id):
     esp_id = request.args.get("esp_id", "")
     _, assignment, _ = store.resolve(esp_id, card_id)
-    if not assignment: abort(404)
+    if not assignment:
+        return jsonify(error="no_assignment"), 404
     return jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))
 
 @app.route("/media")

@@ -70,6 +70,7 @@
 					<td><span class="badge {{ 'badge-ok' if tag.status == 'assigned' else 'badge-attention' }}">{{ _(tag.status) }}</span><span class="content-detail">{{ tag.last_seen | shortdt }}</span></td>
 					<td class="table-actions">
 						<a class="btn btn-small" href="{{ url_for('card_detail', card_id=tag.card_id, **request.args) }}">{{ _('Manage') }}</a>
+						<a class="btn btn-small btn-secondary" href="{{ url_for('card_detail', card_id=tag.card_id, **request.args) }}#manifest">{{ _('Manifest') }}</a>
 						<form method="post" action="{{ url_for('delete_card', card_id=tag.card_id, **request.args) }}" class="confirm-form" data-confirm="{{ _('Really delete card %(id)s?', id=tag.card_id) }}">
 							<button class="btn btn-small btn-danger" type="submit">{{ _('Delete') }}</button>
 						</form>

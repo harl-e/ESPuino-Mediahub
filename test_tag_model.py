@@ -98,5 +98,32 @@ class TagModelTests(unittest.TestCase):
         module = self._load_app(early_v2)
         self.assertEqual(module.app.test_client().get("/cards/123456789012").status_code, 200)
 
+    def test_manifest_preview_uses_effective_assignment_and_folder_expansion(self):
+        module = self._load_app()
+        album = os.path.join(module.MEDIA_DIR, "Album")
+        os.mkdir(album)
+        for filename in ("01.mp3", "02.mp3"):
+            with open(os.path.join(album, filename), "wb") as f: f.write(filename.encode())
+        with open(os.path.join(module.MEDIA_DIR, "override.mp3"), "wb") as f: f.write(b"override")
+        module.store.save_assignment("123456789012", None, True, "Global", "files", 5, None, ["Album"], ["Album/01.mp3"])
+        module.store.save_assignment("123456789012", "ESP_A", False, "Override", "files", 5, None, [], ["override.mp3"])
+        client = module.app.test_client()
+
+        global_manifest = client.get("/cards/123456789012/manifest-preview")
+        override_manifest = client.get("/cards/123456789012/manifest-preview?esp_id=ESP_A")
+        inherited_manifest = client.get("/cards/123456789012/manifest-preview?esp_id=ESP_B")
+
+        self.assertEqual(global_manifest.status_code, 200)
+        self.assertEqual([f["path"] for f in global_manifest.get_json()["files"]], ["Album/01.mp3", "Album/02.mp3"])
+        self.assertEqual([f["path"] for f in override_manifest.get_json()["files"]], ["override.mp3"])
+        self.assertEqual([f["path"] for f in inherited_manifest.get_json()["files"]], ["Album/01.mp3", "Album/02.mp3"])
+
+    def test_manifest_preview_reports_missing_explicit_assignment(self):
+        module = self._load_app()
+        module.store.save_assignment("123456789012", "ESP_A", False, "Explicit", "files", 5, None, [], ["missing.mp3"])
+        response = module.app.test_client().get("/cards/123456789012/manifest-preview?esp_id=ESP_B")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.get_json(), {"error": "no_assignment"})
+
 
 if __name__ == "__main__": unittest.main()
