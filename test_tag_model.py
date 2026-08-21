@@ -113,6 +113,81 @@ class TagModelTests(unittest.TestCase):
         self.assertIn(b"ESP_A", detail.data)
         self.assertEqual(client.get(f"/cards/{legacy_card_id}/overrides/ESP_A/assign").status_code, 200)
 
+    def test_detail_and_edit_routes_keep_query_filters_out_of_legacy_card_id(self):
+        legacy_card_id = "CARD_1"
+        old = {"settings": {}, "devices": {}, "cards": {
+            "ESP_A/CARD_1": {"esp_id": "ESP_A", "card_id": legacy_card_id, "status": "assigned", "name": "Legacy foo", "kind": "files", "play_mode": 5, "files": []},
+        }}
+        module = self._load_app(old)
+        module.store.touch_device("ESP_A", "127.0.0.1", legacy_card_id, "2026-08-21T12:00:00+00:00")
+        client = module.app.test_client()
+        queries = ("", "?status=assigned", "?espId=ESP_A", "?search=CARD", "?status=assigned&espId=ESP_A&search=foo", "?status=assigned&esp_id=ESP_A&search=foo")
+        for query in queries:
+            self.assertEqual(client.get(f"/cards/{legacy_card_id}{query}").status_code, 200, query)
+
+        detail = client.get(f"/cards/{legacy_card_id}?status=assigned&espId=ESP_A&search=foo")
+        self.assertIn(b"/cards?status=assigned&amp;search=foo&amp;espId=ESP_A", detail.data)
+        edit_url = f"/cards/{legacy_card_id}/overrides/ESP_A/assign?status=assigned&espId=ESP_A&search=foo"
+        response = client.post(edit_url, data={"kind": "webradio", "name": "Legacy foo", "stream_url": "http://radio.example/stream.mp3"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/cards/CARD_1?status=assigned&search=foo&espId=ESP_A")
+
+    def test_all_tag_shapes_open_with_combined_query_filters(self):
+        module = self._load_app()
+        module.store.save_assignment("GLOBAL", None, True, "Global", "files", 5, None, [], [])
+        module.store.save_assignment("OVERRIDE", None, True, "Global", "files", 5, None, [], [])
+        module.store.save_assignment("OVERRIDE", "ESP_A", False, "Override", "files", 5, None, [], [])
+        module.store.register_pending("ESP_A", "PENDING", "2026-08-21T12:00:00+00:00")
+        client = module.app.test_client()
+        for card_id in ("GLOBAL", "OVERRIDE", "PENDING"):
+            self.assertEqual(client.get(f"/cards/{card_id}?status=assigned&espId=ESP_A&search=foo").status_code, 200)
+
+    def test_promote_override_to_global_preserves_assignment_and_other_overrides(self):
+        self.save("ESP_A", name="X", folders=["Album"], files=["Album/01.mp3"])
+        self.save("ESP_B", name="Y", folders=["Other"], files=["Other/01.mp3"])
+        self.store._mutate(lambda data: data["cards"]["123456789012"]["overrides"]["ESP_A"].update({"legacy_fields": {"retained": True}, "custom": ["all", "fields"]}))
+        original = self.store.get_tag("123456789012")["overrides"]["ESP_A"]
+
+        self.assertEqual(self.store.promote_override_to_global("123456789012", "ESP_A"), "promoted")
+        tag = self.store.get_tag("123456789012")
+        expected = dict(original)
+        expected["enabled_for_all"] = True
+        self.assertEqual(tag["default_assignment"], expected)
+        self.assertNotIn("ESP_A", tag["overrides"])
+        self.assertEqual(tag["overrides"]["ESP_B"]["name"], "Y")
+        self.assertEqual(self.store.resolve("ESP_A", "123456789012")[2], "global")
+        self.assertEqual(self.store.resolve("ESP_B", "123456789012")[2], "override")
+        self.assertEqual(self.store.resolve("ESP_C", "123456789012")[1]["name"], "X")
+
+    def test_promote_override_requires_confirmation_before_replacing_global(self):
+        self.save(global_=True, name="G")
+        self.save("ESP_A", name="X")
+        self.save("ESP_B", name="Y")
+        self.assertEqual(self.store.promote_override_to_global("123456789012", "ESP_A"), "confirmation_required")
+        tag = self.store.get_tag("123456789012")
+        self.assertEqual(tag["default_assignment"]["name"], "G")
+        self.assertIn("ESP_A", tag["overrides"])
+
+        self.assertEqual(self.store.promote_override_to_global("123456789012", "ESP_A", replace_global=True), "promoted")
+        tag = self.store.get_tag("123456789012")
+        self.assertEqual(tag["default_assignment"]["name"], "X")
+        self.assertNotIn("ESP_A", tag["overrides"])
+        self.assertEqual(tag["overrides"]["ESP_B"]["name"], "Y")
+
+    def test_promote_route_preserves_filters_and_manifest_resolution(self):
+        module = self._load_app()
+        with open(os.path.join(module.MEDIA_DIR, "x.mp3"), "wb") as f: f.write(b"x")
+        module.store.save_assignment("123456789012", "ESP_A", False, "X", "files", 5, None, [], ["x.mp3"])
+        client = module.app.test_client()
+        url = "/cards/123456789012/overrides/ESP_A/promote?status=assigned&espId=ESP_A&search=foo"
+        response = client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/cards/123456789012?status=assigned&search=foo&espId=ESP_A")
+        self.assertNotIn("ESP_A", module.store.get_tag("123456789012")["overrides"])
+        manifest_response = client.get("/cards/123456789012/manifest-preview?esp_id=ESP_A")
+        self.assertEqual(manifest_response.status_code, 200)
+        self.assertEqual([entry["path"] for entry in manifest_response.get_json()["files"]], ["x.mp3"])
+
     def test_manifest_preview_uses_effective_assignment_and_folder_expansion(self):
         module = self._load_app()
         album = os.path.join(module.MEDIA_DIR, "Album")

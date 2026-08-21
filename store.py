@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import threading
+from copy import deepcopy
 from datetime import datetime, timezone
 
 _lock = threading.Lock()
@@ -217,6 +218,26 @@ class Store:
             result = tag.get("overrides", {}).pop(esp_id, None)
             tag["status"] = "assigned" if tag.get("default_assignment") or tag.get("overrides") else "pending"; tag["updated_at"] = now_iso()
             return result
+        return self._mutate(mutate)
+    def promote_override_to_global(self, card_id, esp_id, replace_global=False):
+        """Atomically make one explicit assignment the tag's global default.
+
+        The original assignment is deep-copied so all current and future
+        assignment fields survive the transition.  The selected override is
+        then removed in the same write; other overrides are untouched.
+        """
+        def mutate(data):
+            tag = data["cards"].get(card_id)
+            if not tag or esp_id not in tag.get("overrides", {}): return None
+            if tag.get("default_assignment") and not replace_global:
+                return "confirmation_required"
+            assignment = deepcopy(tag["overrides"][esp_id])
+            assignment["enabled_for_all"] = True
+            tag["default_assignment"] = assignment
+            del tag["overrides"][esp_id]
+            tag["name"] = assignment.get("name") or tag.get("name", "")
+            tag["status"], tag["updated_at"] = "assigned", now_iso()
+            return "promoted"
         return self._mutate(mutate)
     def bump_force_epoch(self, card_id, esp_id=None):
         def mutate(data):

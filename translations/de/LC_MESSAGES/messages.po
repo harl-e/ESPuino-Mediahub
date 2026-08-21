@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ESPuino MediaHub\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-21 20:32+0200\n"
+"POT-Creation-Date: 2026-08-21 23:00+0200\n"
 "PO-Revision-Date: 2026-07-15 09:43+0200\n"
 "Last-Translator: ESPuino MediaHub\n"
 "Language: de\n"
@@ -25,119 +25,127 @@ msgstr "Falsches Passwort."
 msgid "Webradio"
 msgstr "Webradio"
 
-#: app.py:71
+#: app.py:84
 #, python-format
 msgid "%(num)s device"
 msgid_plural "%(num)s devices"
 msgstr[0] "%(num)s Gerät"
 msgstr[1] "%(num)s Geräte"
 
-#: app.py:77
+#: app.py:90
 #, python-format
 msgid "Delete ESPuino %(esp_id)s? Existing tag assignments are retained."
 msgstr ""
 
-#: app.py:82
+#: app.py:95
 msgid "Alias saved."
 msgstr "Alias gespeichert."
 
-#: app.py:86
+#: app.py:99
 #, fuzzy, python-format
 msgid "Device %(esp_id)s deleted. Tag assignments were retained."
 msgstr "Gerät %(esp_id)s gelöscht."
 
-#: app.py:96 templates/cards.html:40
+#: app.py:111 templates/cards.html:40
 msgid "All ESPuinos"
 msgstr "Alle ESPuinos"
 
-#: app.py:96
+#: app.py:111
 #, fuzzy, python-format
 msgid "%(num)s ESPuino"
 msgid_plural "%(num)s ESPuinos"
 msgstr[0] "%(num)s wartend"
 msgstr[1] ""
 
-#: app.py:104
+#: app.py:119
 msgid "Card ID must be exactly 12 digits."
 msgstr "Die Karten-ID muss genau 12 Ziffern haben."
 
-#: app.py:107 app.py:122
+#: app.py:122 app.py:143
 msgid "Please choose a known ESPuino."
 msgstr "Bitte einen bekannten ESPuino wählen."
 
-#: app.py:125
+#: app.py:146
 msgid "A stream URL is required for webradio."
 msgstr "Für Webradio wird eine Stream-URL benötigt."
 
-#: app.py:131
+#: app.py:152
 msgid "Please choose a valid play mode."
 msgstr "Bitte einen gültigen Abspielmodus wählen."
 
-#: app.py:132
+#: app.py:153
 #, fuzzy
 msgid "At least one audio file or folder is required."
 msgstr "Mindestens eine Audiodatei wird benötigt."
 
-#: app.py:133
+#: app.py:154
 msgid "This play mode only supports a single file — please select just one."
 msgstr ""
 "Dieser Abspielmodus unterstützt nur eine einzelne Datei — bitte nur eine "
 "auswählen."
 
-#: app.py:135
+#: app.py:156
 #, python-format
 msgid "Card %(id)s assigned."
 msgstr "Karte %(id)s zugewiesen."
 
-#: app.py:147
+#: app.py:168
 msgid ""
 "Override deleted. This ESPuino now uses the global assignment when one "
 "exists."
 msgstr ""
 
-#: app.py:155
+#: app.py:174
+msgid "A global assignment already exists. Please confirm its replacement."
+msgstr "Es gibt bereits eine globale Zuweisung. Bitte deren Ersetzung bestätigen."
+
+#: app.py:176
+msgid "Override promoted to global assignment."
+msgstr "Abweichung zur globalen Zuweisung gemacht."
+
+#: app.py:185
 #, python-format
 msgid "Secure delete could not be confirmed by %(esp_id)s."
 msgstr ""
 
-#: app.py:156
+#: app.py:186
 #, python-format
 msgid "Card %(id)s deleted."
 msgstr "Karte %(id)s gelöscht."
 
-#: app.py:164
+#: app.py:194
 #, python-format
 msgid "Force refresh triggered for %(num)s assignment."
 msgid_plural "Force refresh triggered for %(num)s assignments."
 msgstr[0] "Force Refresh für %(num)s Zuweisung ausgelöst."
 msgstr[1] "Force Refresh für %(num)s Zuweisungen ausgelöst."
 
-#: app.py:167
+#: app.py:197
 #, fuzzy, python-format
 msgid "Force refresh triggered for all %(num)s assignments."
 msgstr "Force Refresh für alle %(num)s Karten ausgelöst."
 
-#: app.py:201
+#: app.py:231
 msgid "Recursion depth must be between 0 and 20."
 msgstr "Die Rekursionstiefe muss zwischen 0 und 20 liegen."
 
-#: app.py:202
+#: app.py:232
 msgid "Settings saved."
 msgstr "Einstellungen gespeichert."
 
-#: app.py:207
+#: app.py:237
 msgid "Please enter a password."
 msgstr "Bitte ein Passwort eingeben."
 
-#: app.py:208
+#: app.py:238
 msgid "Passwords do not match."
 msgstr "Die Passwörter stimmen nicht überein."
 
-#: app.py:209
+#: app.py:239
 msgid "Hub password set."
 msgstr "Hub-Passwort gesetzt."
 
-#: app.py:212
+#: app.py:242
 msgid "Hub password removed."
 msgstr "Hub-Passwort entfernt."
 
@@ -261,7 +269,7 @@ msgid "Manifest for"
 msgstr ""
 
 #: templates/card_detail.html:31 templates/card_detail.html:52
-#: templates/card_detail.html:110 templates/cards.html:21
+#: templates/card_detail.html:114 templates/cards.html:21
 #: templates/media.html:3
 msgid "Global assignment"
 msgstr "Globale Zuweisung"
@@ -306,39 +314,52 @@ msgstr "Abweichende Zuweisungen"
 msgid "Add override"
 msgstr "Abweichung hinzufügen"
 
-#: templates/card_detail.html:78 templates/card_detail.html:106
+#: templates/card_detail.html:78 templates/card_detail.html:110
 #: templates/cards.html:39
 msgid "ESPuino"
 msgstr "ESPuino"
 
-#: templates/card_detail.html:78 templates/card_detail.html:106
+#: templates/card_detail.html:78 templates/card_detail.html:110
 msgid "Effective assignment"
 msgstr "Effektive Zuweisung"
 
-#: templates/card_detail.html:78 templates/card_detail.html:106
+#: templates/card_detail.html:78 templates/card_detail.html:110
 msgid "Source"
 msgstr "Quelle"
 
-#: templates/card_detail.html:84 templates/card_detail.html:110
+#: templates/card_detail.html:84 templates/card_detail.html:114
 msgid "Override"
 msgstr "Abweichung"
 
 #: templates/card_detail.html:87
+#, python-format
+msgid ""
+"A global assignment already exists. Replace it with the assignment from "
+"%(device)s?"
+msgstr ""
+"Es gibt bereits eine globale Zuweisung. Soll sie durch die Zuweisung von "
+"%(device)s ersetzt werden?"
+
+#: templates/card_detail.html:89
+msgid "Use as global assignment"
+msgstr "Als globale Zuweisung verwenden"
+
+#: templates/card_detail.html:91
 msgid ""
 "Delete this override? This ESPuino will use the global assignment if one "
 "exists."
 msgstr ""
 
-#: templates/card_detail.html:88 templates/cards.html:75
+#: templates/card_detail.html:92 templates/cards.html:75
 #: templates/devices.html:39
 msgid "Delete"
 msgstr "Löschen"
 
-#: templates/card_detail.html:97
+#: templates/card_detail.html:101
 msgid "No ESPuino-specific assignments."
 msgstr ""
 
-#: templates/card_detail.html:103
+#: templates/card_detail.html:107
 msgid "Effective assignments"
 msgstr "Effektive Zuweisungen"
 
@@ -963,4 +984,3 @@ msgstr "Passwort entfernen"
 
 #~ msgid "Last card"
 #~ msgstr "Letzte Karte"
-
