@@ -85,7 +85,7 @@
 
 	<div class="form-actions">
 		<button class="btn" type="submit">{{ _('Save') }}</button>
-		<a class="btn btn-secondary" href="{{ url_for('card_detail', card_id=card_id) }}">{{ _('Cancel') }}</a>
+		<a class="btn btn-secondary" href="{{ url_for('card_detail', card_id=card_id, **ui_state) }}">{{ _('Cancel') }}</a>
 	</div>
 </form>
 {% endblock %}

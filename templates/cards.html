@@ -10,13 +10,13 @@
 			<p class="muted">{{ _('Each RFID tag is shown once. Assignments can apply globally or override content for individual ESPuinos.') }}</p>
 		</div>
 		<div class="page-head-actions">
-			<form method="post" action="{{ url_for('force_refresh_all', **request.args) }}">
+			<form method="post" action="{{ url_for('force_refresh_all', **ui_state) }}">
 				<button class="btn btn-secondary" type="submit">{{ _('Force refresh (all)') }}</button>
 			</form>
 		</div>
 	</div>
 
-	<form class="add-card-form" method="post" action="{{ url_for('add_card', **request.args) }}">
+	<form class="add-card-form" method="post" action="{{ url_for('add_card', **ui_state) }}">
 		<select name="esp_id" aria-label="{{ _('Validity') }}">
 			<option value="">{{ _('Global assignment') }}</option>
 			{% for id, dev in devices.items() %}
@@ -36,7 +36,7 @@
 			<option value="pending" {{ 'selected' if status == 'pending' }}>{{ _('pending') }}</option>
 			<option value="assigned" {{ 'selected' if status == 'assigned' }}>{{ _('assigned') }}</option>
 		</select>
-		<select name="esp_id" aria-label="{{ _('ESPuino') }}" onchange="this.form.submit()">
+		<select name="espId" aria-label="{{ _('ESPuino') }}" onchange="this.form.submit()">
 			<option value="">{{ _('All ESPuinos') }}</option>
 			{% for id, dev in devices.items() %}
 			<option value="{{ id }}" {{ 'selected' if id == esp_id_filter }}>{{ dev.alias or id }}</option>
@@ -64,14 +64,14 @@
 			<tbody>
 				{% for tag, content, validity, overrides in cards %}
 				<tr>
-					<td class="technical-id"><a href="{{ url_for('card_detail', card_id=tag.card_id, **request.args) }}"><code>{{ tag.card_id }}</code></a>{% if tag.name %}<span class="content-detail">{{ tag.name }}</span>{% endif %}</td>
+					<td class="technical-id"><a href="{{ url_for('card_detail', card_id=tag.card_id, **ui_state) }}"><code>{{ tag.card_id }}</code></a>{% if tag.name %}<span class="content-detail">{{ tag.name }}</span>{% endif %}</td>
 					<td class="content-cell" title="{{ content }}">{{ content }}</td>
 					<td>{{ validity }}{% if overrides and tag.default_assignment %}<span class="content-detail">{{ ngettext('%(num)s override', '%(num)s overrides', overrides) % {'num': overrides} }}</span>{% endif %}</td>
 					<td><span class="badge {{ 'badge-ok' if tag.status == 'assigned' else 'badge-attention' }}">{{ _(tag.status) }}</span><span class="content-detail">{{ tag.last_seen | shortdt }}</span></td>
 					<td class="table-actions">
-						<a class="btn btn-small" href="{{ url_for('card_detail', card_id=tag.card_id, **request.args) }}">{{ _('Manage') }}</a>
-						<a class="btn btn-small btn-secondary" href="{{ url_for('card_detail', card_id=tag.card_id, **request.args) }}#manifest">{{ _('Manifest') }}</a>
-						<form method="post" action="{{ url_for('delete_card', card_id=tag.card_id, **request.args) }}" class="confirm-form" data-confirm="{{ _('Really delete card %(id)s?', id=tag.card_id) }}">
+						<a class="btn btn-small" href="{{ url_for('card_detail', card_id=tag.card_id, **ui_state) }}">{{ _('Manage') }}</a>
+						<a class="btn btn-small btn-secondary" href="{{ url_for('card_detail', card_id=tag.card_id, **ui_state) }}#manifest">{{ _('Manifest') }}</a>
+						<form method="post" action="{{ url_for('delete_card', card_id=tag.card_id, **ui_state) }}" class="confirm-form" data-confirm="{{ _('Really delete card %(id)s?', id=tag.card_id) }}">
 							<button class="btn btn-small btn-danger" type="submit">{{ _('Delete') }}</button>
 						</form>
 					</td>

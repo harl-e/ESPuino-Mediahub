@@ -60,10 +60,23 @@ def _content_label(assignment):
     if assignment.get("kind") == "webradio": return "📻 " + _("Webradio")
     sources = assignment.get("folders", []) + assignment.get("files", [])
     return ", ".join(sources[:2]) + (" …" if len(sources) > 2 else "") if sources else "—"
+
+def _ui_state():
+    """Return only list-filter query parameters, never route parameters.
+
+    ``esp_id`` was the first filter spelling, but collides with the path
+    parameter used by the override routes.  Preserve its value while emitting
+    the unambiguous UI-only spelling ``espId`` for all new navigation links.
+    """
+    state = {key: request.args.get(key, "") for key in ("status", "search")}
+    esp_id = request.args.get("espId", "") or request.args.get("esp_id", "")
+    if esp_id:
+        state["espId"] = esp_id
+    return {key: value for key, value in state.items() if value}
+
 def _return_cards():
     # Preserve every active filter for all normal CRUD actions.
-    args = {key: value for key, value in request.args.items() if value}
-    return redirect(url_for("cards", **args))
+    return redirect(url_for("cards", **_ui_state()))
 
 @app.route("/")
 def index():
@@ -87,7 +100,9 @@ def delete_device(esp_id):
 
 @app.route("/cards")
 def cards():
-    status, esp_id, search = request.args.get("status", ""), request.args.get("esp_id", ""), request.args.get("search", "").strip().casefold()
+    status = request.args.get("status", "")
+    esp_id = request.args.get("espId", "") or request.args.get("esp_id", "")
+    search = request.args.get("search", "").strip().casefold()
     devices = store.list_devices(); rows = []
     for tag in store.list_cards().values():
         assignment, source = store.resolve_assignment(tag, esp_id) if esp_id else (tag.get("default_assignment") or next(iter(tag.get("overrides", {}).values()), None), "")
@@ -96,7 +111,7 @@ def cards():
         validity = _("All ESPuinos") if (tag.get("default_assignment") or {}).get("enabled_for_all") else ngettext("%(num)s ESPuino", "%(num)s ESPuinos", len(tag.get("overrides", {}))) % {"num": len(tag.get("overrides", {}))}
         rows.append((tag, _content_label(assignment), validity, len(tag.get("overrides", {}))))
     rows.sort(key=lambda r: r[0].get("last_seen", ""), reverse=True)
-    return render_template("cards.html", cards=rows, devices=devices, status=status, esp_id_filter=esp_id, search=search)
+    return render_template("cards.html", cards=rows, devices=devices, status=status, esp_id_filter=esp_id, search=search, ui_state=_ui_state())
 
 @app.route("/cards/add", methods=["POST"])
 def add_card():
@@ -105,8 +120,8 @@ def add_card():
     esp_id = request.form.get("esp_id", "").strip()
     if esp_id:
         if esp_id not in store.list_devices(): flash(_("Please choose a known ESPuino."), "error"); return _return_cards()
-        return redirect(url_for("assign_card", card_id=card_id, esp_id=esp_id, **request.args))
-    return redirect(url_for("assign_card", card_id=card_id, **request.args))
+        return redirect(url_for("assign_card", card_id=card_id, esp_id=esp_id, **_ui_state()))
+    return redirect(url_for("assign_card", card_id=card_id, **_ui_state()))
 
 @app.route("/cards/<card_id>/assign", methods=["GET", "POST"])
 @app.route("/cards/<card_id>/overrides/<esp_id>/assign", methods=["GET", "POST"])
@@ -138,19 +153,28 @@ def assign_card(card_id, esp_id=None):
             if not folders and not files: flash(_("At least one audio file or folder is required."), "error"); return _return_cards()
             if play_mode in manifest_lib.SINGLE_FILE_PLAY_MODES and (folders or len(files) != 1): flash(_("This play mode only supports a single file — please select just one."), "error"); return _return_cards()
             store.save_assignment(card_id, target, is_global, name, "files", play_mode, None, folders, files)
-        flash(_("Card %(id)s assigned.", id=card_id), "success"); return redirect(url_for("card_detail", card_id=card_id, **request.args))
-    return render_template("card_form.html", card_id=card_id, card=assignment, tag=tag, esp_id=esp_id, devices=store.list_devices(), is_global=is_global, play_modes=manifest_lib.FILE_PLAY_MODES, single_file_play_modes=list(manifest_lib.SINGLE_FILE_PLAY_MODES), recursive_play_modes=list(manifest_lib.RECURSIVE_PLAY_MODES))
+        flash(_("Card %(id)s assigned.", id=card_id), "success"); return redirect(url_for("card_detail", card_id=card_id, **_ui_state()))
+    return render_template("card_form.html", card_id=card_id, card=assignment, tag=tag, esp_id=esp_id, devices=store.list_devices(), is_global=is_global, play_modes=manifest_lib.FILE_PLAY_MODES, single_file_play_modes=list(manifest_lib.SINGLE_FILE_PLAY_MODES), recursive_play_modes=list(manifest_lib.RECURSIVE_PLAY_MODES), ui_state=_ui_state())
 
 @app.route("/cards/<card_id>")
 def card_detail(card_id):
     tag = store.get_tag(card_id)
     if not tag: abort(404)
     devices = store.list_devices()
-    return render_template("card_detail.html", tag=tag, devices=devices, content_label=_content_label)
+    return render_template("card_detail.html", tag=tag, devices=devices, content_label=_content_label, ui_state=_ui_state())
 @app.route("/cards/<card_id>/overrides/<esp_id>/delete", methods=["POST"])
 def delete_override(card_id, esp_id):
     if store.delete_override(card_id, esp_id) is None: abort(404)
-    flash(_("Override deleted. This ESPuino now uses the global assignment when one exists."), "success"); return redirect(url_for("card_detail", card_id=card_id, **request.args))
+    flash(_("Override deleted. This ESPuino now uses the global assignment when one exists."), "success"); return redirect(url_for("card_detail", card_id=card_id, **_ui_state()))
+@app.route("/cards/<card_id>/overrides/<esp_id>/promote", methods=["POST"])
+def promote_override(card_id, esp_id):
+    result = store.promote_override_to_global(card_id, esp_id, request.form.get("replace_global") == "1")
+    if result is None: abort(404)
+    if result == "confirmation_required":
+        flash(_("A global assignment already exists. Please confirm its replacement."), "error")
+    else:
+        flash(_("Override promoted to global assignment."), "success")
+    return redirect(url_for("card_detail", card_id=card_id, **_ui_state()))
 @app.route("/cards/<card_id>/delete", methods=["POST"])
 def delete_card(card_id):
     tag = store.get_tag(card_id)
