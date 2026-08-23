@@ -59,10 +59,12 @@
 			</div>
 			<div class="form-row">
 				<label for="time_release_interval_unit">{{ _('Unit') }}</label>
-				<select id="time_release_interval_unit"><option value="60">{{ _('Minutes') }}</option><option value="3600">{{ _('Hours') }}</option><option value="86400" selected>{{ _('Days') }}</option><option value="604800">{{ _('Weeks') }}</option></select>
+				<select id="time_release_interval_unit"><option value="minutes">{{ _('Minutes') }}</option><option value="hours">{{ _('Hours') }}</option><option value="days" selected>{{ _('Days') }}</option><option value="weeks">{{ _('Weeks') }}</option><option value="months">{{ _('Months') }}</option></select>
 			</div>
 			<input type="hidden" name="time_release_start" id="time_release_start">
 			<input type="hidden" name="time_release_interval" id="time_release_interval">
+			<input type="hidden" name="time_release_interval_value" id="time_release_interval_value_hidden">
+			<input type="hidden" name="time_release_interval_unit" id="time_release_interval_unit_hidden">
 		</div>
 
 		<div class="form-row">
@@ -128,19 +130,25 @@
 		document.getElementById('time_release_start_date').value = savedStart.getFullYear() + '-' + pad(savedStart.getMonth() + 1) + '-' + pad(savedStart.getDate());
 		document.getElementById('time_release_start_time').value = pad(savedStart.getHours()) + ':' + pad(savedStart.getMinutes());
 	}
-	if ({{ card.time_release_interval or 0 }}) {
+	if ({{ card.time_release_interval_value or 0 }} && {{ card.time_release_interval_unit | tojson }}) {
+		document.getElementById('time_release_interval_value').value = {{ card.time_release_interval_value or 0 }};
+		document.getElementById('time_release_interval_unit').value = {{ card.time_release_interval_unit | tojson }};
+	} else if ({{ card.time_release_interval or 0 }}) {
 		var savedInterval = {{ card.time_release_interval or 0 }};
 		var units = [604800, 86400, 3600, 60], selectedUnit = units.find(function (unit) { return savedInterval % unit === 0; }) || 60;
 		document.getElementById('time_release_interval_value').value = savedInterval / selectedUnit;
-		document.getElementById('time_release_interval_unit').value = String(selectedUnit);
+		document.getElementById('time_release_interval_unit').value = ({60: 'minutes', 3600: 'hours', 86400: 'days', 604800: 'weeks'})[selectedUnit];
 	}
 	document.querySelector('form.form-card').addEventListener('submit', function (event) {
 		if (document.getElementById('play_mode').value !== '19') return;
 		var start = new Date(document.getElementById('time_release_start_date').value + 'T' + document.getElementById('time_release_start_time').value).getTime() / 1000;
-		var interval = Number(document.getElementById('time_release_interval_value').value) * Number(document.getElementById('time_release_interval_unit').value);
-		if (!Number.isInteger(start) || start <= 0 || !Number.isInteger(interval) || interval <= 0) { event.preventDefault(); window.alert({{ _('Timed release requires a start date and a positive interval.') | tojson }}); return; }
+		var intervalValue = Number(document.getElementById('time_release_interval_value').value), intervalUnit = document.getElementById('time_release_interval_unit').value;
+		var interval = intervalUnit === 'months' ? 0 : intervalValue * {minutes: 60, hours: 3600, days: 86400, weeks: 604800}[intervalUnit];
+		if (!Number.isInteger(start) || start <= 0 || !Number.isInteger(intervalValue) || intervalValue <= 0 || (intervalUnit !== 'months' && (!Number.isInteger(interval) || interval <= 0))) { event.preventDefault(); window.alert({{ _('Timed release requires a start date and a positive interval.') | tojson }}); return; }
 		document.getElementById('time_release_start').value = start;
 		document.getElementById('time_release_interval').value = interval;
+		document.getElementById('time_release_interval_value_hidden').value = intervalValue;
+		document.getElementById('time_release_interval_unit_hidden').value = intervalUnit;
 	});
 	mhToggleKind();
 	mhToggleTimeRelease();

@@ -100,6 +100,9 @@ msgstr "Tage"
 msgid "Weeks"
 msgstr "Wochen"
 
+msgid "Months"
+msgstr "Monate"
+
 msgid "Timed release requires a start date and a positive interval."
 msgstr "Die zeitgesteuerte Freigabe benötigt eine Startzeit und ein positives Intervall."
 
