@@ -85,11 +85,20 @@ msgstr "Startzeit"
 msgid "Interval"
 msgstr "Intervall"
 
+msgid "Unit"
+msgstr "Einheit"
+
+msgid "Minutes"
+msgstr "Minuten"
+
 msgid "Hours"
 msgstr "Stunden"
 
 msgid "Days"
 msgstr "Tage"
+
+msgid "Weeks"
+msgstr "Wochen"
 
 msgid "Timed release requires a start date and a positive interval."
 msgstr "Die zeitgesteuerte Freigabe benötigt eine Startzeit und ein positives Intervall."
