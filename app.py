@@ -136,7 +136,7 @@ def assign_card(card_id, esp_id=None):
     card_id = str(tag.get("card_id") or card_id)
     is_global = esp_id is None
     assignment = tag.get("default_assignment") if is_global else tag.get("overrides", {}).get(esp_id)
-    assignment = assignment or {"name": tag.get("name", ""), "kind": "files", "play_mode": None, "stream_url": "", "folders": [], "files": []}
+    assignment = assignment or {"name": tag.get("name", ""), "kind": "files", "play_mode": None, "stream_url": "", "folders": [], "files": [], "time_release_start": 0, "time_release_interval": 0, "time_release_interval_value": 0, "time_release_interval_unit": ""}
     if request.method == "POST":
         kind, name = request.form.get("kind", "files"), request.form.get("name", "").strip()
         target = None if is_global else esp_id

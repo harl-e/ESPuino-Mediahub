@@ -115,6 +115,10 @@
 
 {% block scripts %}
 <script>
+	{% set time_release_start = card.get('time_release_start', 0) or 0 %}
+	{% set time_release_interval = card.get('time_release_interval', 0) or 0 %}
+	{% set time_release_interval_value = card.get('time_release_interval_value', 0) or 0 %}
+	{% set time_release_interval_unit = card.get('time_release_interval_unit', '') or '' %}
 	function mhToggleKind() {
 		var isWebradio = document.querySelector('input[name="kind"]:checked').value === 'webradio';
 		document.getElementById('mh-files-section').style.display = isWebradio ? 'none' : 'block';
@@ -125,16 +129,16 @@
 		document.getElementById('time-release-fields').style.display = active ? 'contents' : 'none';
 	}
 	document.getElementById('play_mode').addEventListener('change', mhToggleTimeRelease);
-	if ({{ card.time_release_start or 0 }}) {
-		var savedStart = new Date({{ card.time_release_start or 0 }} * 1000), pad = function (v) { return String(v).padStart(2, '0'); };
+	if ({{ time_release_start }}) {
+		var savedStart = new Date({{ time_release_start }} * 1000), pad = function (v) { return String(v).padStart(2, '0'); };
 		document.getElementById('time_release_start_date').value = savedStart.getFullYear() + '-' + pad(savedStart.getMonth() + 1) + '-' + pad(savedStart.getDate());
 		document.getElementById('time_release_start_time').value = pad(savedStart.getHours()) + ':' + pad(savedStart.getMinutes());
 	}
-	if ({{ card.time_release_interval_value or 0 }} && {{ card.time_release_interval_unit | tojson }}) {
-		document.getElementById('time_release_interval_value').value = {{ card.time_release_interval_value or 0 }};
-		document.getElementById('time_release_interval_unit').value = {{ card.time_release_interval_unit | tojson }};
-	} else if ({{ card.time_release_interval or 0 }}) {
-		var savedInterval = {{ card.time_release_interval or 0 }};
+	if ({{ time_release_interval_value }} && {{ time_release_interval_unit | tojson }}) {
+		document.getElementById('time_release_interval_value').value = {{ time_release_interval_value }};
+		document.getElementById('time_release_interval_unit').value = {{ time_release_interval_unit | tojson }};
+	} else if ({{ time_release_interval }}) {
+		var savedInterval = {{ time_release_interval }};
 		var units = [604800, 86400, 3600, 60], selectedUnit = units.find(function (unit) { return savedInterval % unit === 0; }) || 60;
 		document.getElementById('time_release_interval_value').value = savedInterval / selectedUnit;
 		document.getElementById('time_release_interval_unit').value = ({60: 'minutes', 3600: 'hours', 86400: 'days', 604800: 'weeks'})[selectedUnit];

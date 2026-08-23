@@ -25,6 +25,17 @@ def write_audio(module, relpath, payload=b"audio"):
     return module.media_library.stat_and_hash(module.MEDIA_DIR, relpath)
 
 
+def file_assignment_form(audio, play_mode=3, **time_release):
+    form = {
+        "kind": "files",
+        "name": "Existing card",
+        "play_mode": str(play_mode),
+        "selected_paths_json": json.dumps({"folders": [], "files": [audio]}),
+    }
+    form.update(time_release)
+    return form
+
+
 def test_timed_release_form_uses_existing_form_rows_and_all_units():
     template = (Path(__file__).resolve().parents[1] / "templates" / "card_form.html").read_text(encoding="utf-8")
     for unit in ("minutes", "hours", "days", "weeks", "months"):
@@ -62,6 +73,49 @@ def test_all_file_play_modes_round_trip_without_time_release_fields(tmp_path, mo
         else:
             assert assignment["time_release_start"] == 0
             assert assignment["time_release_interval"] == 0
+
+
+def test_assign_route_handles_legacy_assignment_without_time_release_fields(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    client = module.app.test_client()
+    card_id = "004123087255"
+    audio = write_audio(module, "Folder/01.mp3")
+    module.store.save_assignment(card_id, None, True, "Old card", "files", 3, None, [], [audio])
+
+    def remove_time_release_fields(data):
+        assignment = data["cards"][card_id]["default_assignment"]
+        for field in ("time_release_start", "time_release_interval", "time_release_interval_value", "time_release_interval_unit"):
+            assignment.pop(field, None)
+    module.store._mutate(remove_time_release_fields)
+
+    assert client.get(f"/cards/{card_id}/assign").status_code == 200
+    assert client.post(f"/cards/{card_id}/assign", data=file_assignment_form(audio)).status_code == 302
+    assert client.post(f"/cards/{card_id}/assign", data=file_assignment_form(audio, play_mode=4)).status_code == 302
+    assert module.store.get_tag(card_id)["default_assignment"]["play_mode"] == 4
+
+
+def test_assign_route_handles_new_card_and_time_release_intervals(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    client = module.app.test_client()
+    audio = write_audio(module, "Calendar/01.mp3")
+
+    new_card_id = "004123087256"
+    assert client.get(f"/cards/{new_card_id}/assign").status_code == 200
+    assert client.post(f"/cards/{new_card_id}/assign", data=file_assignment_form(audio)).status_code == 302
+
+    seconds_card_id = "004123087257"
+    module.store.save_assignment(seconds_card_id, None, True, "Seconds", "files", 19, None, [], [audio], 1_796_079_600, 86_400)
+    assert client.get(f"/cards/{seconds_card_id}/assign").status_code == 200
+    assert client.post(f"/cards/{seconds_card_id}/assign", data=file_assignment_form(audio, 19, time_release_start="1796079600", time_release_interval="86400", time_release_interval_value="1", time_release_interval_unit="days")).status_code == 302
+
+    months_card_id = "004123087258"
+    module.store.save_assignment(months_card_id, None, True, "Months", "files", 19, None, [], [audio], 1_796_079_600, 0, 1, "months")
+    assert client.get(f"/cards/{months_card_id}/assign").status_code == 200
+    assert client.post(f"/cards/{months_card_id}/assign", data=file_assignment_form(audio, 19, time_release_start="1796079600", time_release_interval="0", time_release_interval_value="1", time_release_interval_unit="months")).status_code == 302
+    assignment = module.store.get_tag(months_card_id)["default_assignment"]
+    assert assignment["time_release_interval"] == 0
+    assert assignment["time_release_interval_value"] == 1
+    assert assignment["time_release_interval_unit"] == "months"
 
 
 def test_unknown_file_play_mode_is_rejected(tmp_path, monkeypatch):
