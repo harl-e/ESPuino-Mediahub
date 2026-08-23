@@ -27,8 +27,8 @@ def write_audio(module, relpath, payload=b"audio"):
 
 def test_timed_release_form_uses_existing_form_rows_and_all_units():
     template = (Path(__file__).resolve().parents[1] / "templates" / "card_form.html").read_text(encoding="utf-8")
-    for seconds in (60, 3600, 86400, 604800):
-        assert f'<option value="{seconds}"' in template
+    for unit in ("minutes", "hours", "days", "weeks", "months"):
+        assert f'<option value="{unit}"' in template
     assert template.count('class="form-row"') >= 4
     assert "style.display = active ? 'contents' : 'none'" in template
     assert "time_release_start_date" in template
@@ -136,6 +136,18 @@ def test_timed_release_manifest_carries_local_release_metadata(tmp_path, monkeyp
     assert body["playMode"] == 19
     assert body["timeReleaseStart"] == 1_796_079_600
     assert body["timeReleaseInterval"] == 86_400
+
+
+def test_monthly_timed_release_manifest_keeps_value_and_unit(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    expected = write_audio(module, "Calendar/01.mp3")
+    module.store.save_assignment(
+        "004123087255", None, True, "Calendar", "files", 19, None, [], [expected], 1_796_079_600, 0, 1, "months",
+    )
+    body = module.app.test_client().get("/esp-1/card/004123087255/manifest.json").get_json()
+    assert body["timeReleaseInterval"] == 0
+    assert body["timeReleaseIntervalValue"] == 1
+    assert body["timeReleaseIntervalUnit"] == "months"
 
 
 def test_force_refresh_changes_version_without_content_change(tmp_path, monkeypatch):

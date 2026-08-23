@@ -100,6 +100,9 @@ msgstr "Jours"
 msgid "Weeks"
 msgstr "Semaines"
 
+msgid "Months"
+msgstr "Mois"
+
 msgid "Timed release requires a start date and a positive interval."
 msgstr "La publication programmée nécessite une date de début et un intervalle positif."
 

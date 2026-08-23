@@ -156,6 +156,9 @@ def build_manifest(card_id, card, files_base_url, media_dir=None, recursion_dept
         if card["play_mode"] == 19:
             body["timeReleaseStart"] = card.get("time_release_start", 0)
             body["timeReleaseInterval"] = card.get("time_release_interval", 0)
+            if card.get("time_release_interval_unit"):
+                body["timeReleaseIntervalValue"] = card.get("time_release_interval_value", 0)
+                body["timeReleaseIntervalUnit"] = card["time_release_interval_unit"]
 
     hashed = dict(body)
     hashed["_forceEpoch"] = card.get("force_epoch", 0)

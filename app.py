@@ -151,14 +151,18 @@ def assign_card(card_id, esp_id=None):
             folders, files = selected.get("folders", []), selected.get("files", [])
             if not manifest_lib.is_valid_file_play_mode(play_mode): flash(_("Please choose a valid play mode."), "error"); return _return_cards()
 
-            time_release_start, time_release_interval = 0, 0
+            time_release_start, time_release_interval, time_release_interval_value, time_release_interval_unit = 0, 0, 0, ""
             if play_mode == 19:
-                try: time_release_start = int(request.form.get("time_release_start", "0")); time_release_interval = int(request.form.get("time_release_interval", "0"))
+                try: time_release_start = int(request.form.get("time_release_start", "0")); time_release_interval_value = int(request.form.get("time_release_interval_value", "0")); time_release_interval_unit = request.form.get("time_release_interval_unit", "")
                 except (ValueError, TypeError): pass
-                if time_release_start <= 0 or time_release_interval <= 0: flash(_("Timed release requires a start date and a positive interval."), "error"); return _return_cards()
+                factors = {"minutes": 60, "hours": 3600, "days": 86400, "weeks": 604800}
+                if time_release_interval_unit == "months": time_release_interval = 0
+                elif time_release_interval_unit in factors: time_release_interval = time_release_interval_value * factors[time_release_interval_unit]
+                else: time_release_interval = int(request.form.get("time_release_interval", "0")); time_release_interval_unit = ""; time_release_interval_value = 0
+                if time_release_start <= 0 or (time_release_interval_unit == "months" and time_release_interval_value <= 0) or (time_release_interval_unit != "months" and time_release_interval <= 0): flash(_("Timed release requires a start date and a positive interval."), "error"); return _return_cards()
             if not folders and not files: flash(_("At least one audio file or folder is required."), "error"); return _return_cards()
             if play_mode in manifest_lib.SINGLE_FILE_PLAY_MODES and (folders or len(files) != 1): flash(_("This play mode only supports a single file — please select just one."), "error"); return _return_cards()
-            store.save_assignment(card_id, target, is_global, name, "files", play_mode, None, folders, files, time_release_start, time_release_interval)
+            store.save_assignment(card_id, target, is_global, name, "files", play_mode, None, folders, files, time_release_start, time_release_interval, time_release_interval_value, time_release_interval_unit)
         flash(_("Card %(id)s assigned.", id=card_id), "success"); return redirect(url_for("card_detail", card_id=card_id, **_ui_state()))
     return render_template("card_form.html", card_id=card_id, card=assignment, tag=tag, esp_id=esp_id, devices=store.list_devices(), is_global=is_global, play_modes=manifest_lib.FILE_PLAY_MODES, single_file_play_modes=list(manifest_lib.SINGLE_FILE_PLAY_MODES), recursive_play_modes=list(manifest_lib.RECURSIVE_PLAY_MODES), ui_state=_ui_state())
 
