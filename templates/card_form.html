@@ -44,6 +44,15 @@
 			</select>
 		</div>
 
+		<div class="form-row" id="time-release-fields">
+			<label for="time_release_start_local">{{ _('Start date') }} / {{ _('Start time') }}</label>
+			<input type="datetime-local" id="time_release_start_local" value="">
+			<label for="time_release_interval_value">{{ _('Interval') }}</label>
+			<div class="radio-group"><input type="number" min="1" value="1" id="time_release_interval_value"><select id="time_release_interval_unit"><option value="3600">{{ _('Hours') }}</option><option value="86400" selected>{{ _('Days') }}</option></select></div>
+			<input type="hidden" name="time_release_start" id="time_release_start">
+			<input type="hidden" name="time_release_interval" id="time_release_interval">
+		</div>
+
 		<div class="form-row">
 			<span class="form-label">{{ _('Selected media') }}</span>
 			<ul id="selected-files" class="file-list"></ul>
@@ -97,7 +106,30 @@
 		document.getElementById('mh-files-section').style.display = isWebradio ? 'none' : 'block';
 		document.getElementById('mh-webradio-section').style.display = isWebradio ? 'block' : 'none';
 	}
+	function mhToggleTimeRelease() {
+		var active = document.getElementById('play_mode').value === '19';
+		document.getElementById('time-release-fields').style.display = active ? 'block' : 'none';
+	}
+	document.getElementById('play_mode').addEventListener('change', mhToggleTimeRelease);
+	if ({{ card.time_release_start or 0 }}) {
+		var savedStart = new Date({{ card.time_release_start or 0 }} * 1000), pad = function (v) { return String(v).padStart(2, '0'); };
+		document.getElementById('time_release_start_local').value = savedStart.getFullYear() + '-' + pad(savedStart.getMonth() + 1) + '-' + pad(savedStart.getDate()) + 'T' + pad(savedStart.getHours()) + ':' + pad(savedStart.getMinutes());
+	}
+	if ({{ card.time_release_interval or 0 }}) {
+		var savedInterval = {{ card.time_release_interval or 0 }};
+		if (savedInterval % 86400 === 0) { document.getElementById('time_release_interval_value').value = savedInterval / 86400; document.getElementById('time_release_interval_unit').value = '86400'; }
+		else { document.getElementById('time_release_interval_value').value = savedInterval / 3600; document.getElementById('time_release_interval_unit').value = '3600'; }
+	}
+	document.querySelector('form.form-card').addEventListener('submit', function (event) {
+		if (document.getElementById('play_mode').value !== '19') return;
+		var start = new Date(document.getElementById('time_release_start_local').value).getTime() / 1000;
+		var interval = Number(document.getElementById('time_release_interval_value').value) * Number(document.getElementById('time_release_interval_unit').value);
+		if (!Number.isInteger(start) || start <= 0 || !Number.isInteger(interval) || interval <= 0) { event.preventDefault(); window.alert({{ _('Timed release requires a start date and a positive interval.') | tojson }}); return; }
+		document.getElementById('time_release_start').value = start;
+		document.getElementById('time_release_interval').value = interval;
+	});
 	mhToggleKind();
+	mhToggleTimeRelease();
 </script>
 <script src="{{ url_for('static', filename='js/media-browser.js') }}" defer></script>
 {% endblock %}

@@ -75,6 +75,18 @@ def test_files_manifest_contains_expected_contract_fields(tmp_path, monkeypatch)
     assert len(body["version"]) == 64
 
 
+def test_timed_release_manifest_carries_local_release_metadata(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    expected = write_audio(module, "Calendar/01.mp3")
+    module.store.save_assignment(
+        "004123087255", None, True, "Calendar", "files", 19, None, [], [expected], 1_796_079_600, 86_400,
+    )
+    body = module.app.test_client().get("/esp-1/card/004123087255/manifest.json").get_json()
+    assert body["playMode"] == 19
+    assert body["timeReleaseStart"] == 1_796_079_600
+    assert body["timeReleaseInterval"] == 86_400
+
+
 def test_force_refresh_changes_version_without_content_change(tmp_path, monkeypatch):
     module = load_app(tmp_path, monkeypatch)
     expected = write_audio(module, "Folder/01.mp3")
