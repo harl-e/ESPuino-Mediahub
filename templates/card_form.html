@@ -44,11 +44,23 @@
 			</select>
 		</div>
 
-		<div class="form-row" id="time-release-fields">
-			<label for="time_release_start_local">{{ _('Start date') }} / {{ _('Start time') }}</label>
-			<input type="datetime-local" id="time_release_start_local" value="">
+		<div id="time-release-fields">
+			<div class="form-row">
+				<label for="time_release_start_date">{{ _('Start date') }}</label>
+				<input type="date" id="time_release_start_date" value="">
+			</div>
+			<div class="form-row">
+				<label for="time_release_start_time">{{ _('Start time') }}</label>
+				<input type="time" id="time_release_start_time" value="">
+			</div>
+			<div class="form-row">
 			<label for="time_release_interval_value">{{ _('Interval') }}</label>
-			<div class="radio-group"><input type="number" min="1" value="1" id="time_release_interval_value"><select id="time_release_interval_unit"><option value="3600">{{ _('Hours') }}</option><option value="86400" selected>{{ _('Days') }}</option></select></div>
+				<input type="number" min="1" step="1" value="1" id="time_release_interval_value">
+			</div>
+			<div class="form-row">
+				<label for="time_release_interval_unit">{{ _('Unit') }}</label>
+				<select id="time_release_interval_unit"><option value="60">{{ _('Minutes') }}</option><option value="3600">{{ _('Hours') }}</option><option value="86400" selected>{{ _('Days') }}</option><option value="604800">{{ _('Weeks') }}</option></select>
+			</div>
 			<input type="hidden" name="time_release_start" id="time_release_start">
 			<input type="hidden" name="time_release_interval" id="time_release_interval">
 		</div>
@@ -108,21 +120,23 @@
 	}
 	function mhToggleTimeRelease() {
 		var active = document.getElementById('play_mode').value === '19';
-		document.getElementById('time-release-fields').style.display = active ? 'block' : 'none';
+		document.getElementById('time-release-fields').style.display = active ? 'contents' : 'none';
 	}
 	document.getElementById('play_mode').addEventListener('change', mhToggleTimeRelease);
 	if ({{ card.time_release_start or 0 }}) {
 		var savedStart = new Date({{ card.time_release_start or 0 }} * 1000), pad = function (v) { return String(v).padStart(2, '0'); };
-		document.getElementById('time_release_start_local').value = savedStart.getFullYear() + '-' + pad(savedStart.getMonth() + 1) + '-' + pad(savedStart.getDate()) + 'T' + pad(savedStart.getHours()) + ':' + pad(savedStart.getMinutes());
+		document.getElementById('time_release_start_date').value = savedStart.getFullYear() + '-' + pad(savedStart.getMonth() + 1) + '-' + pad(savedStart.getDate());
+		document.getElementById('time_release_start_time').value = pad(savedStart.getHours()) + ':' + pad(savedStart.getMinutes());
 	}
 	if ({{ card.time_release_interval or 0 }}) {
 		var savedInterval = {{ card.time_release_interval or 0 }};
-		if (savedInterval % 86400 === 0) { document.getElementById('time_release_interval_value').value = savedInterval / 86400; document.getElementById('time_release_interval_unit').value = '86400'; }
-		else { document.getElementById('time_release_interval_value').value = savedInterval / 3600; document.getElementById('time_release_interval_unit').value = '3600'; }
+		var units = [604800, 86400, 3600, 60], selectedUnit = units.find(function (unit) { return savedInterval % unit === 0; }) || 60;
+		document.getElementById('time_release_interval_value').value = savedInterval / selectedUnit;
+		document.getElementById('time_release_interval_unit').value = String(selectedUnit);
 	}
 	document.querySelector('form.form-card').addEventListener('submit', function (event) {
 		if (document.getElementById('play_mode').value !== '19') return;
-		var start = new Date(document.getElementById('time_release_start_local').value).getTime() / 1000;
+		var start = new Date(document.getElementById('time_release_start_date').value + 'T' + document.getElementById('time_release_start_time').value).getTime() / 1000;
 		var interval = Number(document.getElementById('time_release_interval_value').value) * Number(document.getElementById('time_release_interval_unit').value);
 		if (!Number.isInteger(start) || start <= 0 || !Number.isInteger(interval) || interval <= 0) { event.preventDefault(); window.alert({{ _('Timed release requires a start date and a positive interval.') | tojson }}); return; }
 		document.getElementById('time_release_start').value = start;

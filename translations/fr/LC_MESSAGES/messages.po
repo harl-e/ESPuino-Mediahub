@@ -85,11 +85,20 @@ msgstr "Heure de début"
 msgid "Interval"
 msgstr "Intervalle"
 
+msgid "Unit"
+msgstr "Unité"
+
+msgid "Minutes"
+msgstr "Minutes"
+
 msgid "Hours"
 msgstr "Heures"
 
 msgid "Days"
 msgstr "Jours"
+
+msgid "Weeks"
+msgstr "Semaines"
 
 msgid "Timed release requires a start date and a positive interval."
 msgstr "La publication programmée nécessite une date de début et un intervalle positif."

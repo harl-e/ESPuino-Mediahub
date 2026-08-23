@@ -1,6 +1,8 @@
 import importlib
+import json
 import os
 import sys
+from pathlib import Path
 
 
 def load_app(tmp_path, monkeypatch):
@@ -21,6 +23,55 @@ def write_audio(module, relpath, payload=b"audio"):
     with open(path, "wb") as f:
         f.write(payload)
     return module.media_library.stat_and_hash(module.MEDIA_DIR, relpath)
+
+
+def test_timed_release_form_uses_existing_form_rows_and_all_units():
+    template = (Path(__file__).resolve().parents[1] / "templates" / "card_form.html").read_text(encoding="utf-8")
+    for seconds in (60, 3600, 86400, 604800):
+        assert f'<option value="{seconds}"' in template
+    assert template.count('class="form-row"') >= 4
+    assert "style.display = active ? 'contents' : 'none'" in template
+    assert "time_release_start_date" in template
+    assert "time_release_start_time" in template
+    assert "var units = [604800, 86400, 3600, 60]" in template
+    assert "savedInterval % unit === 0" in template
+
+
+def test_all_file_play_modes_round_trip_without_time_release_fields(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    audio = write_audio(module, "Folder/01.mp3")
+    client = module.app.test_client()
+    card_id = "004123087255"
+    form = {
+        "kind": "files", "name": "Existing card", "selected_paths_json": json.dumps({"folders": [], "files": [audio]}),
+    }
+
+    for play_mode, _ in module.manifest_lib.FILE_PLAY_MODES:
+        data = dict(form, play_mode=str(play_mode))
+        if play_mode == 19:
+            data.update(time_release_start="1796079600", time_release_interval="86400")
+        response = client.post(f"/cards/{card_id}/assign", data=data)
+        assert response.status_code == 302
+        assignment = module.store.get_tag(card_id)["default_assignment"]
+        assert assignment["play_mode"] == play_mode
+        edit_page = client.get(f"/cards/{card_id}/assign").get_data(as_text=True)
+        assert f'<option value="{play_mode}" selected>' in edit_page
+        if play_mode == 19:
+            assert assignment["time_release_start"] == 1796079600
+            assert assignment["time_release_interval"] == 86400
+        else:
+            assert assignment["time_release_start"] == 0
+            assert assignment["time_release_interval"] == 0
+
+
+def test_unknown_file_play_mode_is_rejected(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    client = module.app.test_client()
+    response = client.post("/cards/004123087255/assign", data={
+        "kind": "files", "name": "Invalid", "play_mode": "99", "selected_paths_json": '{"folders": [], "files": ["x"]}',
+    })
+    assert response.status_code == 302
+    assert module.store.get_tag("004123087255") is None
 
 
 def test_unknown_card_registers_pending_pair(tmp_path, monkeypatch):
