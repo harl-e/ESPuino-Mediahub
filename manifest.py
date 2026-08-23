@@ -61,6 +61,7 @@ FILE_PLAY_MODES = [
     (12, "Single random track of a folder"),
     (13, "Random subfolder (sorted)"),
     (14, "Random subfolder (shuffled)"),
+    (19, "Timed release"),
 ]
 
 _FILE_PLAY_MODE_VALUES = {value for value, _label in FILE_PLAY_MODES}
@@ -92,6 +93,7 @@ def _translation_placeholders():  # pragma: no cover
         _("Single random track of a folder"),
         _("Random subfolder (sorted)"),
         _("Random subfolder (shuffled)"),
+        _("Timed release"),
     ]
 
 
@@ -151,6 +153,9 @@ def build_manifest(card_id, card, files_base_url, media_dir=None, recursion_dept
                 for f in (resolve_files(card, media_dir, recursion_depth) if media_dir else card.get("files", []))
             ],
         }
+        if card["play_mode"] == 19:
+            body["timeReleaseStart"] = card.get("time_release_start", 0)
+            body["timeReleaseInterval"] = card.get("time_release_interval", 0)
 
     hashed = dict(body)
     hashed["_forceEpoch"] = card.get("force_epoch", 0)

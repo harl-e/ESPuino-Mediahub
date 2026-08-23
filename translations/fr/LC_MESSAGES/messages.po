@@ -73,6 +73,27 @@ msgstr "Une URL de flux est requise pour la webradio."
 msgid "Please choose a valid play mode."
 msgstr "Veuillez choisir un mode de lecture valide."
 
+msgid "Timed release"
+msgstr "Publication programmée"
+
+msgid "Start date"
+msgstr "Date de début"
+
+msgid "Start time"
+msgstr "Heure de début"
+
+msgid "Interval"
+msgstr "Intervalle"
+
+msgid "Hours"
+msgstr "Heures"
+
+msgid "Days"
+msgstr "Jours"
+
+msgid "Timed release requires a start date and a positive interval."
+msgstr "La publication programmée nécessite une date de début et un intervalle positif."
+
 #: app.py:153
 #, fuzzy
 msgid "At least one audio file or folder is required."

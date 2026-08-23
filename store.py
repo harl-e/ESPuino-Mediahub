@@ -19,7 +19,7 @@ def now_iso():
 
 
 def _empty_assignment():
-    return {"name": "", "kind": "files", "play_mode": None, "stream_url": None, "folders": [], "files": [], "force_epoch": 0}
+    return {"name": "", "kind": "files", "play_mode": None, "stream_url": None, "folders": [], "files": [], "time_release_start": 0, "time_release_interval": 0, "force_epoch": 0}
 
 
 class Store:
@@ -187,19 +187,23 @@ class Store:
         a temporary compatibility shim for programmatic callers.
 
         v2: ``card_id, esp_id, global, name, kind, play_mode, stream, folders, files``.
+        v3: v2 plus Unix start timestamp and interval seconds for TIME_RELEASE.
         v1: ``esp_id, card_id, name, kind, play_mode, stream, files``.
         """
         if len(args) == 7:
             esp_id, card_id, name, kind, play_mode, stream_url, files = args
-            enabled_for_all, folders = False, []
+            enabled_for_all, folders, time_release_start, time_release_interval = False, [], 0, 0
         elif len(args) == 9:
             card_id, esp_id, enabled_for_all, name, kind, play_mode, stream_url, folders, files = args
+            time_release_start, time_release_interval = 0, 0
+        elif len(args) == 11:
+            card_id, esp_id, enabled_for_all, name, kind, play_mode, stream_url, folders, files, time_release_start, time_release_interval = args
         else:
-            raise TypeError("save_assignment expects 7 (legacy) or 9 arguments")
+            raise TypeError("save_assignment expects 7 (legacy), 9, or 11 arguments")
         def mutate(data):
             ts = now_iso()
             tag = data["cards"].setdefault(card_id, {"card_id": card_id, "status": "pending", "name": "", "default_assignment": None, "overrides": {}, "seen_by": {}, "first_seen": ts, "last_seen": ts, "created_at": ts})
-            a = _empty_assignment(); a.update({"name": name, "kind": kind, "play_mode": play_mode, "stream_url": stream_url, "folders": folders, "files": files})
+            a = _empty_assignment(); a.update({"name": name, "kind": kind, "play_mode": play_mode, "stream_url": stream_url, "folders": folders, "files": files, "time_release_start": time_release_start, "time_release_interval": time_release_interval})
             if enabled_for_all:
                 a["enabled_for_all"] = True; a["force_epoch"] = (tag.get("default_assignment") or {}).get("force_epoch", 0)
                 tag["default_assignment"] = a; tag["name"] = name or tag.get("name", "")

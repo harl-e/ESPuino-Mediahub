@@ -146,13 +146,15 @@ def assign_card(card_id, esp_id=None):
             if not stream: flash(_("A stream URL is required for webradio."), "error"); return _return_cards()
             store.save_assignment(card_id, target, is_global, name, kind, None, stream, [], [])
         else:
-            try: play_mode = int(request.form.get("play_mode", "")); selected = json.loads(request.form.get("selected_paths_json", "{}"))
+            try: play_mode = int(request.form.get("play_mode", "")); selected = json.loads(request.form.get("selected_paths_json", "{}")); time_release_start = int(request.form.get("time_release_start", "0")); time_release_interval = int(request.form.get("time_release_interval", "0"))
             except (ValueError, TypeError): play_mode, selected = -1, {}
             folders, files = selected.get("folders", []), selected.get("files", [])
             if not manifest_lib.is_valid_file_play_mode(play_mode): flash(_("Please choose a valid play mode."), "error"); return _return_cards()
+
+            if play_mode == 19 and (time_release_start <= 0 or time_release_interval <= 0): flash(_("Timed release requires a start date and a positive interval."), "error"); return _return_cards()
             if not folders and not files: flash(_("At least one audio file or folder is required."), "error"); return _return_cards()
             if play_mode in manifest_lib.SINGLE_FILE_PLAY_MODES and (folders or len(files) != 1): flash(_("This play mode only supports a single file — please select just one."), "error"); return _return_cards()
-            store.save_assignment(card_id, target, is_global, name, "files", play_mode, None, folders, files)
+            store.save_assignment(card_id, target, is_global, name, "files", play_mode, None, folders, files, time_release_start, time_release_interval)
         flash(_("Card %(id)s assigned.", id=card_id), "success"); return redirect(url_for("card_detail", card_id=card_id, **_ui_state()))
     return render_template("card_form.html", card_id=card_id, card=assignment, tag=tag, esp_id=esp_id, devices=store.list_devices(), is_global=is_global, play_modes=manifest_lib.FILE_PLAY_MODES, single_file_play_modes=list(manifest_lib.SINGLE_FILE_PLAY_MODES), recursive_play_modes=list(manifest_lib.RECURSIVE_PLAY_MODES), ui_state=_ui_state())
 
