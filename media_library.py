@@ -108,6 +108,32 @@ def list_audio_files_recursive(media_root, relpath, max_depth):
     return results
 
 
+# Process-wide SHA-256 cache: (size, mtime_ns) -> digest. Keyed by the
+# validated absolute path. A cached entry is only reused while both the size
+# and the nanosecond mtime are unchanged, so replacing a file in the library
+# invalidates it immediately. Bounded to keep a long-running container from
+# accumulating stale entries for files that were removed from the library.
+_HASH_CACHE = {}
+_HASH_CACHE_MAX = 4096
+
+def _cached_hash(abs_path, size, mtime_ns):
+    key = (abs_path, size, mtime_ns)
+    digest = _HASH_CACHE.get(key)
+    if digest is not None:
+        return digest
+    hasher = hashlib.sha256()
+    with open(abs_path, "rb") as f:
+        while True:
+            chunk = f.read(1024 * 1024)
+            if not chunk:
+                break
+            hasher.update(chunk)
+    digest = hasher.hexdigest()
+    if len(_HASH_CACHE) >= _HASH_CACHE_MAX:
+        _HASH_CACHE.clear()
+    _HASH_CACHE[key] = digest
+    return digest
+
 def stat_and_hash(media_root, relpath):
     """Validates relpath is a real, readable audio file inside media_root and
     returns {"path", "size", "sha256"} (path normalized with forward
@@ -120,18 +146,10 @@ def stat_and_hash(media_root, relpath):
     if abs_path is None or not os.path.isfile(abs_path) or not is_audio_file(abs_path):
         return None
 
-    hasher = hashlib.sha256()
-    size = 0
     try:
-        with open(abs_path, "rb") as f:
-            while True:
-                chunk = f.read(1024 * 1024)
-                if not chunk:
-                    break
-                hasher.update(chunk)
-                size += len(chunk)
+        st = os.stat(abs_path)
+        digest = _cached_hash(abs_path, st.st_size, st.st_mtime_ns)
     except OSError:
         return None
-
     normalized = os.path.relpath(abs_path, os.path.realpath(media_root)).replace(os.sep, "/")
-    return {"path": normalized, "size": size, "sha256": hasher.hexdigest()}
+    return {"path": normalized, "size": st.st_size, "sha256": digest}
