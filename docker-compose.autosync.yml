@@ -1,9 +1,20 @@
 # Local side-by-side instance for the Autosync worktree.
-# Use together with docker-compose.yml; its separate image, container name,
-# project name and host port keep it independent from the main MediaHub.
+# Deliberately standalone (not an `extends:` of docker-compose.yml):
+# the !override tag used previously requires Compose v2.24+ and broke
+# older installations at parse time. Declaring the full service keeps
+# the file self-contained and parseable by any Compose v2 version.
 services:
   mediahub:
     image: espuino-mediahub-autosync
     container_name: espuino-mediahub-autosync
-    ports: !override
+    user: "33:33"
+    ports:
       - "8081:8080"
+    volumes:
+      - ./data:/data
+      - ${MEDIAHUB_MEDIA_HOST:-./media}:/media:ro
+    environment:
+      - MEDIAHUB_DATA=/data
+      - MEDIAHUB_MEDIA=/media
+      - TZ=Europe/Berlin
+    restart: unless-stopped
