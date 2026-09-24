@@ -44,6 +44,13 @@ class Store:
             self._write(data)
             return result
 
+    def _locked_read(self):
+        # Reads outside _mutate() must hold the same lock: a plain
+        # self._read() can observe db.json mid-replace or a concurrently
+        # mutated structure when gunicorn is ever run with threads.
+        with _lock:
+            return self._read()
+
     def _migrate_to_tag_schema(self):
         """Losslessly upgrade v1's esp_id/card_id rows. Old assignments are
         intentionally explicit; equal rows must never be guessed global."""
@@ -123,7 +130,7 @@ class Store:
             return len(tags), assignments
         self._mutate(mutate)
 
-    def list_devices(self): return self._read().get("devices", {})
+    def list_devices(self): return self._locked_read().get("devices", {})
     def touch_device(self, esp_id, ip, card_id, ts):
         def mutate(data):
             dev = data.setdefault("devices", {}).setdefault(esp_id, {"first_seen": ts, "alias": None})
@@ -138,7 +145,7 @@ class Store:
     def count_cards_for_device(self, esp_id): return sum(1 for tag in self.list_cards().values() if self.resolve_assignment(tag, esp_id)[0])
     def delete_device(self, esp_id): return self._mutate(lambda d: d["devices"].pop(esp_id, None) is not None)
 
-    def list_cards(self): return self._read().get("cards", {})
+    def list_cards(self): return self._locked_read().get("cards", {})
     def get_tag(self, card_id):
         card_id = str(card_id)
         cards = self.list_cards()
@@ -264,7 +271,7 @@ class Store:
         return self._mutate(mutate)
     def delete_card(self, card_id): return self._mutate(lambda d: d["cards"].pop(card_id, None))
 
-    def get_settings(self): return {**_DEFAULT_DB["settings"], **self._read().get("settings", {})}
+    def get_settings(self): return {**_DEFAULT_DB["settings"], **self._locked_read().get("settings", {})}
     def set_delete_mode(self, mode): return self._mutate(lambda d: d["settings"].update({"delete_mode": mode}) or mode)
     def set_recursion_depth(self, depth): return self._mutate(lambda d: d["settings"].update({"recursion_depth": depth}) or depth)
     def set_password_hash(self, password_hash): return self._mutate(lambda d: d["settings"].update({"password_hash": password_hash}) or password_hash)
