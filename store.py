@@ -25,31 +25,50 @@ def _empty_assignment():
 class Store:
     def __init__(self, data_dir):
         self.data_dir, self.db_path = data_dir, os.path.join(data_dir, "db.json")
+        self._cache, self._cache_mtime_ns = None, None
         os.makedirs(data_dir, exist_ok=True)
-        if not os.path.exists(self.db_path): self._write(_DEFAULT_DB)
+        if not os.path.exists(self.db_path): self._write(deepcopy(_DEFAULT_DB))
         self._migrate_to_tag_schema()
 
     def _read(self):
         with open(self.db_path, "r", encoding="utf-8") as f: return json.load(f)
 
+    def _read_cached(self):
+        # In-memory mirror of db.json, revalidated by mtime: a stat() per read
+        # instead of a full open()+json.load() on every request. Writers use
+        # the atomic os.replace() in _write(), which always changes mtime, so
+        # other workers/processes picking the file up stay consistent too.
+        try:
+            mtime_ns = os.stat(self.db_path).st_mtime_ns
+        except OSError:
+            return self._read()
+        if self._cache is not None and self._cache_mtime_ns == mtime_ns:
+            return self._cache
+        data = self._read()
+        self._cache, self._cache_mtime_ns = data, mtime_ns
+        return data
+
     def _write(self, data):
         tmp_path = self.db_path + ".tmp"
         with open(tmp_path, "w", encoding="utf-8") as f: json.dump(data, f, indent=2, sort_keys=True, ensure_ascii=False)
         os.replace(tmp_path, self.db_path)
+        try:
+            self._cache, self._cache_mtime_ns = data, os.stat(self.db_path).st_mtime_ns
+        except OSError:
+            self._cache, self._cache_mtime_ns = data, None
 
     def _mutate(self, fn):
         with _lock:
-            data = self._read()
+            data = self._read_cached()
             result = fn(data)
             self._write(data)
             return result
 
     def _locked_read(self):
-        # Reads outside _mutate() must hold the same lock: a plain
-        # self._read() can observe db.json mid-replace or a concurrently
-        # mutated structure when gunicorn is ever run with threads.
-        with _lock:
-            return self._read()
+        # _read_cached() is safe outside the lock: the atomic os.replace() in
+        # _write() means a reader either sees the old or the new complete file
+        # and the mtime revalidation picks up external writes immediately.
+        return self._read_cached()
 
     def _migrate_to_tag_schema(self):
         """Losslessly upgrade v1's esp_id/card_id rows. Old assignments are
