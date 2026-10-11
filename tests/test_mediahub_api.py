@@ -5,6 +5,19 @@ import sys
 from pathlib import Path
 
 
+def csrf_post(client, url, data=None):
+    """POST with the session CSRF token (all browser POSTs require it)."""
+    response = client.get("/settings")
+    token = None
+    for line in response.data.decode().split('"'):
+        pass
+    import re
+    m = re.search(r'name="csrf_token" value="([^"]+)"', response.data.decode())
+    data = dict(data or {})
+    data["csrf_token"] = m.group(1)
+    return client.post(url, data=data)
+
+
 def load_app(tmp_path, monkeypatch):
     data_dir = tmp_path / "data"
     media_dir = tmp_path / "media"
@@ -61,7 +74,7 @@ def test_all_file_play_modes_round_trip_without_time_release_fields(tmp_path, mo
         data = dict(form, play_mode=str(play_mode))
         if play_mode == 19:
             data.update(time_release_start="1796079600", time_release_interval="86400")
-        response = client.post(f"/cards/{card_id}/assign", data=data)
+        response = csrf_post(client, f"/cards/{card_id}/assign", data=data)
         assert response.status_code == 302
         assignment = module.store.get_tag(card_id)["default_assignment"]
         assert assignment["play_mode"] == play_mode
@@ -89,8 +102,8 @@ def test_assign_route_handles_legacy_assignment_without_time_release_fields(tmp_
     module.store._mutate(remove_time_release_fields)
 
     assert client.get(f"/cards/{card_id}/assign").status_code == 200
-    assert client.post(f"/cards/{card_id}/assign", data=file_assignment_form(audio)).status_code == 302
-    assert client.post(f"/cards/{card_id}/assign", data=file_assignment_form(audio, play_mode=4)).status_code == 302
+    assert csrf_post(client, f"/cards/{card_id}/assign", data=file_assignment_form(audio)).status_code == 302
+    assert csrf_post(client, f"/cards/{card_id}/assign", data=file_assignment_form(audio, play_mode=4)).status_code == 302
     assert module.store.get_tag(card_id)["default_assignment"]["play_mode"] == 4
 
 
@@ -101,17 +114,17 @@ def test_assign_route_handles_new_card_and_time_release_intervals(tmp_path, monk
 
     new_card_id = "004123087256"
     assert client.get(f"/cards/{new_card_id}/assign").status_code == 200
-    assert client.post(f"/cards/{new_card_id}/assign", data=file_assignment_form(audio)).status_code == 302
+    assert csrf_post(client, f"/cards/{new_card_id}/assign", data=file_assignment_form(audio)).status_code == 302
 
     seconds_card_id = "004123087257"
     module.store.save_assignment(seconds_card_id, None, True, "Seconds", "files", 19, None, [], [audio], 1_796_079_600, 86_400)
     assert client.get(f"/cards/{seconds_card_id}/assign").status_code == 200
-    assert client.post(f"/cards/{seconds_card_id}/assign", data=file_assignment_form(audio, 19, time_release_start="1796079600", time_release_interval="86400", time_release_interval_value="1", time_release_interval_unit="days")).status_code == 302
+    assert csrf_post(client, f"/cards/{seconds_card_id}/assign", data=file_assignment_form(audio, 19, time_release_start="1796079600", time_release_interval="86400", time_release_interval_value="1", time_release_interval_unit="days")).status_code == 302
 
     months_card_id = "004123087258"
     module.store.save_assignment(months_card_id, None, True, "Months", "files", 19, None, [], [audio], 1_796_079_600, 0, 1, "months")
     assert client.get(f"/cards/{months_card_id}/assign").status_code == 200
-    assert client.post(f"/cards/{months_card_id}/assign", data=file_assignment_form(audio, 19, time_release_start="1796079600", time_release_interval="0", time_release_interval_value="1", time_release_interval_unit="months")).status_code == 302
+    assert csrf_post(client, f"/cards/{months_card_id}/assign", data=file_assignment_form(audio, 19, time_release_start="1796079600", time_release_interval="0", time_release_interval_value="1", time_release_interval_unit="months")).status_code == 302
     assignment = module.store.get_tag(months_card_id)["default_assignment"]
     assert assignment["time_release_interval"] == 0
     assert assignment["time_release_interval_value"] == 1
@@ -121,7 +134,7 @@ def test_assign_route_handles_new_card_and_time_release_intervals(tmp_path, monk
 def test_unknown_file_play_mode_is_rejected(tmp_path, monkeypatch):
     module = load_app(tmp_path, monkeypatch)
     client = module.app.test_client()
-    response = client.post("/cards/004123087255/assign", data={
+    response = csrf_post(client, "/cards/004123087255/assign", data={
         "kind": "files", "name": "Invalid", "play_mode": "99", "selected_paths_json": '{"folders": [], "files": ["x"]}',
     })
     assert response.status_code == 302
@@ -258,3 +271,50 @@ def test_media_browse_rejects_path_traversal(tmp_path, monkeypatch):
     response = module.app.test_client().get("/media/browse?path=../")
 
     assert response.status_code == 404
+
+
+def test_auto_register_setting_gates_pending_registration(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    client = module.app.test_client()
+    module.store.set_auto_register(False)
+    response = client.get("/esp-1/card/004123087255/manifest.json")
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "unknown_card", "status": "ignored"}
+    assert module.store.list_cards() == {}
+    assert module.store.list_devices()["esp-1"]["last_card_id"] == "004123087255"
+    module.store.set_auto_register(True)
+    response = client.get("/esp-1/card/004123087255/manifest.json")
+    assert response.get_json() == {"error": "unknown_card", "status": "pending"}
+    assert module.store.get_tag("004123087255")["status"] == "pending"
+
+
+def test_settings_form_toggles_auto_register(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    client = module.app.test_client()
+    assert module.store.get_settings()["auto_register"] is True
+    # realistic browser POST: unchecked checkbox is absent from the body
+    assert csrf_post(client, "/settings", data={"delete_mode": "lazy", "recursion_depth": "3"}).status_code == 302
+    assert module.store.get_settings()["auto_register"] is False
+    assert csrf_post(client, "/settings", data={"delete_mode": "lazy", "recursion_depth": "3", "auto_register": "1"}).status_code == 302
+    assert module.store.get_settings()["auto_register"] is True
+
+
+def test_delete_all_pending_removes_only_pending_tags(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    client = module.app.test_client()
+    audio = write_audio(module, "Folder/01.mp3")
+    client.get("/esp-1/card/004123087255/manifest.json")
+    module.store.save_assignment("004123087256", None, True, "Kept", "files", 3, None, [], [audio])
+    client.get("/esp-2/card/004123087257/manifest.json")
+    assert csrf_post(client, "/cards/pending/delete-all").status_code == 302
+    assert module.store.get_tag("004123087255") is None
+    assert module.store.get_tag("004123087257") is None
+    assert module.store.get_tag("004123087256")["status"] == "assigned"
+
+
+def test_browser_post_without_csrf_token_is_rejected(tmp_path, monkeypatch):
+    module = load_app(tmp_path, monkeypatch)
+    client = module.app.test_client()
+    assert client.post("/cards/pending/delete-all").status_code == 400
+    # ESPuino-facing endpoints stay tokenless
+    assert client.get("/esp-1/card/004123087255/manifest.json").status_code == 404

@@ -52,9 +52,9 @@ python app.py        # http://localhost:8080
 
 - **Devices** (`/devices`): ESPuinos that have contacted the hub (IP, last seen, last card).
 - **Cards & Assignments** (`/cards`): overview, assign/edit — pick files/folders from the mounted library via an inline tree browser (`static/js/media-browser.js`, modeled after the ESPuino web UI's own SD explorer) or set a webradio stream URL — force refresh (per card/all), delete.
-- **New Cards**: filter at `/cards?pending=1` — cards registered on tap but not yet assigned (see concept §5.3).
+- **New Cards**: filter at `/cards?status=pending` — tags registered on tap but not yet assigned (see concept §5.3). "Delete all pending" clears every waiting tag in one go; the setting "Accept new registrations" (`auto_register`, `/settings`) can reject new registrations entirely (unknown tags then get a plain 404 instead of being registered).
 - **Media** (`/media`): storage usage per card; `/media/browse?path=` is the JSON API backing the tree browser.
-- **Settings** (`/settings`): delete behavior lazy vs. secure (concept §13.1) — secure calls `DELETE /rfid` on the ESPuino and only removes the hub entry after a confirmed 200 response. Also: set/remove the optional hub password.
+- **Settings** (`/settings`): delete behavior lazy vs. secure (concept §13.1) — secure calls `DELETE /rfid` on the ESPuino and only removes the hub entry after a confirmed 200 response. Also: recursion depth, card registration (accept/reject new registrations, concept §5.3), set/remove the optional hub password.
 - **MediaHub API**: `GET /<espId>/card/<cardId>/manifest.json` (manifest, or `pending` registration), `GET /media/<path>` (media files, path relative to the library root).
 
 ## Maintaining translations

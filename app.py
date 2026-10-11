@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import secrets
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from flask_babel import Babel, get_locale, gettext as _, ngettext
@@ -36,11 +37,28 @@ def set_language(lang_code):
 
 PUBLIC_ENDPOINTS = {"login", "set_language", "health", "card_resolve", "card_seen", "card_manifest", "serve_media", "static"}
 @app.before_request
+def _csrf_protect():
+    """Same-site CSRF protection for all state-changing browser requests.
+    Public API endpoints (ESPuino-facing, tokenless devices) are exempt;
+    same-origin HTML forms carry a per-session token in a hidden field
+    (see the csrf_token context processor)."""
+    if request.method == "POST" and request.endpoint not in PUBLIC_ENDPOINTS:
+        token = session.get("csrf_token")
+        if not token or token != request.form.get("csrf_token"):
+            return "CSRF token missing or invalid.", 400
+
+@app.before_request
 def _require_login():
     if request.endpoint not in PUBLIC_ENDPOINTS and request.endpoint and store.get_settings().get("password_hash") and not session.get("authenticated"):
         return redirect(url_for("login", next=request.full_path))
 @app.context_processor
 def _auth(): return {"hub_password_set": bool(store.get_settings().get("password_hash"))}
+
+@app.context_processor
+def _csrf():
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(16)
+    return {"csrf_token": session["csrf_token"]}
 @app.route("/login", methods=["GET", "POST"])
 def login():
     password_hash = store.get_settings().get("password_hash"); next_url = request.values.get("next") or url_for("index")
@@ -185,6 +203,12 @@ def promote_override(card_id, esp_id):
     else:
         flash(_("Override promoted to global assignment."), "success")
     return redirect(url_for("card_detail", card_id=card_id, **_ui_state()))
+@app.route("/cards/pending/delete-all", methods=["POST"])
+def delete_pending_all():
+    n = store.delete_pending_cards()
+    flash(_("Deleted all %(num)s pending card(s). Tapping an unknown card will register it again (unless disabled in the settings).", num=n), "success")
+    return _return_cards()
+
 @app.route("/cards/<card_id>/delete", methods=["POST"])
 def delete_card(card_id):
     tag = store.get_tag(card_id)
@@ -236,6 +260,8 @@ def settings():
     if request.method == "POST":
         mode = request.form.get("delete_mode")
         if mode in ("lazy", "secure"): store.set_delete_mode(mode)
+        # Unchecked checkboxes are absent from the POST body entirely — absence means "off".
+        store.set_auto_register(request.form.get("auto_register") == "1")
         try: depth = int(request.form.get("recursion_depth", ""))
         except ValueError: depth = -1
         if not 0 <= depth <= 20: flash(_("Recursion depth must be between 0 and 20."), "error"); return redirect(url_for("settings"))
@@ -261,15 +287,17 @@ def card_resolve(esp_id, card_id):
 def card_seen(esp_id, card_id):
     if not manifest_lib.is_valid_card_id(card_id): return jsonify(error="invalid_card_id"), 400
     ts = store_lib.now_iso(); store.touch_device(esp_id, request.remote_addr, card_id, ts); tag, assignment, _ = store.resolve(esp_id, card_id)
-    if not assignment: tag = store.register_pending(esp_id, card_id, ts)
+    if not assignment: tag, _ = store.register_pending_if_enabled(esp_id, card_id, ts, store.get_settings().get("auto_register", True))
     else: tag = store.touch_card_seen(esp_id, card_id, ts)
-    return jsonify(assigned=assignment is not None, status="assigned" if assignment else "pending", first_seen_at=tag.get("first_seen"), last_seen_at=tag.get("last_seen"))
+    return jsonify(assigned=assignment is not None, status="assigned" if assignment else "pending", first_seen_at=(tag or {}).get("first_seen"), last_seen_at=(tag or {}).get("last_seen"))
 @app.route("/<esp_id>/card/<card_id>/manifest.json")
 def card_manifest(esp_id, card_id):
     if not manifest_lib.is_valid_card_id(card_id): return jsonify(error="invalid_card_id"), 400
     ts = store_lib.now_iso(); store.touch_device(esp_id, request.remote_addr, card_id, ts); tag, assignment, source = store.resolve(esp_id, card_id); was_known = tag is not None
     if not assignment:
-        tag = store.register_pending(esp_id, card_id, ts)
+        tag, _ = store.register_pending_if_enabled(esp_id, card_id, ts, store.get_settings().get("auto_register", True))
+        if tag is None:
+            return jsonify(error="unknown_card", status="ignored"), 404
         return jsonify(error="not_assigned" if was_known else "unknown_card", status="pending"), 404
     store.touch_card_seen(esp_id, card_id, ts); log.info("Tag resolve: cardId=%s espId=%s source=%s", card_id, esp_id, source)
     return jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))

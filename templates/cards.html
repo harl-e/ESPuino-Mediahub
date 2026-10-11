@@ -11,12 +11,20 @@
 		</div>
 		<div class="page-head-actions">
 			<form method="post" action="{{ url_for('force_refresh_all', **ui_state) }}">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 				<button class="btn btn-secondary" type="submit">{{ _('Force refresh (all)') }}</button>
 			</form>
+			{% if status == 'pending' %}
+			<form class="confirm-form" method="post" action="{{ url_for('delete_pending_all', **ui_state) }}" data-confirm="{{ _("Delete ALL pending cards? They have no assignment yet and will be re-registered on the next tap (unless new registrations are rejected in the settings).") }}">
+				<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+				<button class="btn btn-danger" type="submit">{{ _('Delete all pending') }}</button>
+			</form>
+			{% endif %}
 		</div>
 	</div>
 
 	<form class="add-card-form" method="post" action="{{ url_for('add_card', **ui_state) }}">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 		<select name="esp_id" aria-label="{{ _('Validity') }}">
 			<option value="">{{ _('Global assignment') }}</option>
 			{% for id, dev in devices.items() %}
@@ -72,6 +80,7 @@
 						<a class="btn btn-small" href="{{ url_for('card_detail', card_id=tag.card_id, **ui_state) }}">{{ _('Manage') }}</a>
 						<a class="btn btn-small btn-secondary" href="{{ url_for('card_detail', card_id=tag.card_id, **ui_state) }}#manifest">{{ _('Manifest') }}</a>
 						<form method="post" action="{{ url_for('delete_card', card_id=tag.card_id, **ui_state) }}" class="confirm-form" data-confirm="{{ _('Really delete card %(id)s?', id=tag.card_id) }}">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 							<button class="btn btn-small btn-danger" type="submit">{{ _('Delete') }}</button>
 						</form>
 					</td>

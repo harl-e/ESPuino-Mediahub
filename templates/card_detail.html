@@ -11,6 +11,7 @@
 		</div>
 		<div class="page-head-actions">
 			<form method="post" action="{{ url_for('force_refresh_card', card_id=tag.card_id, **ui_state) }}">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 				<button class="btn btn-secondary" type="submit">{{ _('Force refresh') }}</button>
 			</form>
 			<a class="btn btn-secondary" href="{{ url_for('cards', **ui_state) }}">{{ _('Back') }}</a>
@@ -85,10 +86,12 @@
 						<td class="table-actions">
 							<a class="btn btn-small" href="{{ url_for('assign_card', card_id=tag.card_id, esp_id=id, **ui_state) }}">{{ _('Edit') }}</a>
 							<form method="post" action="{{ url_for('promote_override', card_id=tag.card_id, esp_id=id, **ui_state) }}"{% if tag.default_assignment %} class="confirm-form" data-confirm="{{ _('A global assignment already exists. Replace it with the assignment from %(device)s?', device=(devices.get(id, {}).alias or id)) }}"{% endif %}>
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 								{% if tag.default_assignment %}<input type="hidden" name="replace_global" value="1">{% endif %}
 								<button class="btn btn-small" type="submit">{{ _('Use as global assignment') }}</button>
 							</form>
 							<form method="post" action="{{ url_for('delete_override', card_id=tag.card_id, esp_id=id, **ui_state) }}" class="confirm-form" data-confirm="{{ _('Delete this override? This ESPuino will use the global assignment if one exists.') }}">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 								<button class="btn btn-small btn-danger" type="submit">{{ _('Delete') }}</button>
 							</form>
 						</td>

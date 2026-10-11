@@ -15,6 +15,7 @@
 </section>
 
 <form class="form-card" method="post">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 	<div class="form-row">
 		<label for="name">{{ _('Name') }} <span class="muted">{{ _('(display/logs only)') }}</span></label>
 		<input type="text" id="name" name="name" value="{{ card.name or '' }}" placeholder="{{ _('e.g. Bedtime Stories – Episode 12') }}">

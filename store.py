@@ -11,7 +11,7 @@ _lock = threading.Lock()
 log = logging.getLogger(__name__)
 DEFAULT_RECURSION_DEPTH = 3
 SCHEMA_VERSION = 2
-_DEFAULT_DB = {"schema_version": SCHEMA_VERSION, "settings": {"delete_mode": "lazy", "password_hash": None, "recursion_depth": DEFAULT_RECURSION_DEPTH}, "devices": {}, "cards": {}}
+_DEFAULT_DB = {"schema_version": SCHEMA_VERSION, "settings": {"delete_mode": "lazy", "password_hash": None, "recursion_depth": DEFAULT_RECURSION_DEPTH, "auto_register": True}, "devices": {}, "cards": {}}
 
 
 def now_iso():
@@ -181,6 +181,24 @@ class Store:
     def resolve(self, esp_id, card_id):
         tag = self.get_tag(card_id); assignment, source = self.resolve_assignment(tag, esp_id)
         return tag, assignment, source
+    def register_pending_if_enabled(self, esp_id, card_id, ts, auto_register):
+        """Lookup + registration under one lock, gated on auto_register:
+        returns (tag, registered); tag stays None when registration is
+        disabled and the tag is unknown (ignored tap, concept §5.3)."""
+        def mutate(data):
+            tag = data["cards"].get(card_id)
+            if tag is not None:
+                seen = tag.setdefault("seen_by", {}).setdefault(esp_id, {"first_seen": ts})
+                seen["last_seen"] = ts; tag["last_seen"], tag["updated_at"] = ts, ts
+                return tag, False
+            if not auto_register:
+                return None, False
+            tag = {"card_id": card_id, "status": "pending", "name": "", "default_assignment": None, "overrides": {}, "seen_by": {}, "first_seen": ts, "last_seen": ts, "created_at": ts, "updated_at": ts}
+            tag["seen_by"][esp_id] = {"first_seen": ts, "last_seen": ts}
+            data["cards"][card_id] = tag
+            return tag, True
+        return self._mutate(mutate)
+
     def register_pending(self, esp_id, card_id, ts):
         def mutate(data):
             tag = data["cards"].setdefault(card_id, {"card_id": card_id, "status": "pending", "name": "", "default_assignment": None, "overrides": {}, "seen_by": {}, "first_seen": ts, "last_seen": ts, "created_at": ts, "updated_at": ts})
@@ -188,6 +206,16 @@ class Store:
             seen["last_seen"] = ts; tag["last_seen"], tag["updated_at"] = ts, ts
             return tag
         return self._mutate(mutate)
+    def delete_pending_cards(self):
+        """Removes all tags still in 'pending' state (never assigned).
+        Returns the number of entries removed."""
+        def mutate(data):
+            keys = [key for key, tag in data["cards"].items() if tag.get("status") == "pending"]
+            for key in keys:
+                del data["cards"][key]
+            return len(keys)
+        return self._mutate(mutate)
+
     def touch_card_seen(self, esp_id, card_id, ts): return self.register_pending(esp_id, card_id, ts)
     def save_assignment(self, *args):
         """Save a v2 assignment, accepting the former v1 argument order as
@@ -275,3 +303,4 @@ class Store:
     def set_delete_mode(self, mode): return self._mutate(lambda d: d["settings"].update({"delete_mode": mode}) or mode)
     def set_recursion_depth(self, depth): return self._mutate(lambda d: d["settings"].update({"recursion_depth": depth}) or depth)
     def set_password_hash(self, password_hash): return self._mutate(lambda d: d["settings"].update({"password_hash": password_hash}) or password_hash)
+    def set_auto_register(self, enabled): return self._mutate(lambda d: d["settings"].update({"auto_register": bool(enabled)}) or bool(enabled))
