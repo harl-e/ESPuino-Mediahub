@@ -11,6 +11,19 @@ _lock = threading.Lock()
 log = logging.getLogger(__name__)
 DEFAULT_RECURSION_DEPTH = 3
 SCHEMA_VERSION = 2
+# Firmware taps fire resolve/seen/manifest back-to-back, each bumping
+# last_seen. Timestamps only need minute granularity for the UI, so writes
+# that would only move last_seen by less than this threshold are skipped.
+TOUCH_WRITE_THRESHOLD = 60  # seconds
+
+
+def _seconds_since(iso_ts, now):
+    try:
+        then = datetime.fromisoformat(iso_ts)
+    except (TypeError, ValueError):
+        return None
+    now_dt = datetime.fromisoformat(now)
+    return (now_dt - then).total_seconds()
 _DEFAULT_DB = {"schema_version": SCHEMA_VERSION, "settings": {"delete_mode": "lazy", "password_hash": None, "recursion_depth": DEFAULT_RECURSION_DEPTH, "auto_register": True}, "devices": {}, "cards": {}}
 
 
@@ -151,6 +164,11 @@ class Store:
 
     def list_devices(self): return self._locked_read().get("devices", {})
     def touch_device(self, esp_id, ip, card_id, ts):
+        dev = self._locked_read().get("devices", {}).get(esp_id)
+        if dev is not None and dev.get("ip") == ip and dev.get("last_card_id") == card_id:
+            age = _seconds_since(dev.get("last_seen"), ts)
+            if age is not None and 0 <= age < TOUCH_WRITE_THRESHOLD:
+                return dev
         def mutate(data):
             dev = data.setdefault("devices", {}).setdefault(esp_id, {"first_seen": ts, "alias": None})
             dev.update({"last_seen": ts, "ip": ip, "last_card_id": card_id}); return dev
@@ -235,7 +253,13 @@ class Store:
             return len(keys)
         return self._mutate(mutate)
 
-    def touch_card_seen(self, esp_id, card_id, ts): return self.register_pending(esp_id, card_id, ts)
+    def touch_card_seen(self, esp_id, card_id, ts):
+        seen = self._locked_read().get("cards", {}).get(card_id, {}).get("seen_by", {}).get(esp_id)
+        if seen is not None:
+            age = _seconds_since(seen.get("last_seen"), ts)
+            if age is not None and 0 <= age < TOUCH_WRITE_THRESHOLD:
+                return self.get_tag(card_id)
+        return self.register_pending(esp_id, card_id, ts)
     def save_assignment(self, *args):
         """Save a v2 assignment, accepting the former v1 argument order as
         a temporary compatibility shim for programmatic callers.
