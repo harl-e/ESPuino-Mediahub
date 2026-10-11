@@ -314,6 +314,6 @@ def card_manifest(esp_id, card_id):
     save_hash_cache()
     return response
 @app.route("/media/<path:filename>")
-def serve_media(filename): return send_from_directory(MEDIA_DIR, filename)
+def serve_media(filename): return send_from_directory(MEDIA_DIR, filename, conditional=True)
 
 if __name__ == "__main__": app.run(host="0.0.0.0", port=8080, debug=True)
