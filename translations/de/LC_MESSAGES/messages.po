@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ESPuino MediaHub\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-21 23:00+0200\n"
+"POT-Creation-Date: 2026-10-11 04:35+0000\n"
 "PO-Revision-Date: 2026-07-15 09:43+0200\n"
 "Last-Translator: ESPuino MediaHub\n"
 "Language: de\n"
@@ -17,226 +17,213 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:50
+#: app.py:68
 msgid "Incorrect password."
 msgstr "Falsches Passwort."
 
-#: app.py:60 templates/card_form.html:32
+#: app.py:78 templates/card_form.html:33
 msgid "Webradio"
 msgstr "Webradio"
 
-#: app.py:84
+#: app.py:102
 #, python-format
 msgid "%(num)s device"
 msgid_plural "%(num)s devices"
 msgstr[0] "%(num)s Gerät"
 msgstr[1] "%(num)s Geräte"
 
-#: app.py:90
+#: app.py:108
 #, python-format
 msgid "Delete ESPuino %(esp_id)s? Existing tag assignments are retained."
 msgstr ""
 
-#: app.py:95
+#: app.py:113
 msgid "Alias saved."
 msgstr "Alias gespeichert."
 
-#: app.py:99
+#: app.py:117
 #, fuzzy, python-format
 msgid "Device %(esp_id)s deleted. Tag assignments were retained."
 msgstr "Gerät %(esp_id)s gelöscht."
 
-#: app.py:111 templates/cards.html:40
+#: app.py:129 templates/cards.html:48
 msgid "All ESPuinos"
 msgstr "Alle ESPuinos"
 
-#: app.py:111
+#: app.py:129
 #, fuzzy, python-format
 msgid "%(num)s ESPuino"
 msgid_plural "%(num)s ESPuinos"
 msgstr[0] "%(num)s wartend"
 msgstr[1] ""
 
-#: app.py:119
+#: app.py:137
 msgid "Card ID must be exactly 12 digits."
 msgstr "Die Karten-ID muss genau 12 Ziffern haben."
 
-#: app.py:122 app.py:143
+#: app.py:140 app.py:161
 msgid "Please choose a known ESPuino."
 msgstr "Bitte einen bekannten ESPuino wählen."
 
-#: app.py:146
+#: app.py:164
 msgid "A stream URL is required for webradio."
 msgstr "Für Webradio wird eine Stream-URL benötigt."
 
-#: app.py:152
+#: app.py:170
 msgid "Please choose a valid play mode."
 msgstr "Bitte einen gültigen Abspielmodus wählen."
 
-msgid "Timed release"
-msgstr "Zeitgesteuerte Freigabe"
-
-msgid "Start date"
-msgstr "Startdatum"
-
-msgid "Start time"
-msgstr "Startzeit"
-
-msgid "Interval"
-msgstr "Intervall"
-
-msgid "Unit"
-msgstr "Einheit"
-
-msgid "Minutes"
-msgstr "Minuten"
-
-msgid "Hours"
-msgstr "Stunden"
-
-msgid "Days"
-msgstr "Tage"
-
-msgid "Weeks"
-msgstr "Wochen"
-
-msgid "Months"
-msgstr "Monate"
-
+#: app.py:180 templates/card_form.html:152
 msgid "Timed release requires a start date and a positive interval."
-msgstr "Die zeitgesteuerte Freigabe benötigt eine Startzeit und ein positives Intervall."
+msgstr ""
+"Die zeitgesteuerte Freigabe benötigt eine Startzeit und ein positives "
+"Intervall."
 
-#: app.py:153
+#: app.py:181
 #, fuzzy
 msgid "At least one audio file or folder is required."
 msgstr "Mindestens eine Audiodatei wird benötigt."
 
-#: app.py:154
+#: app.py:182
 msgid "This play mode only supports a single file — please select just one."
 msgstr ""
 "Dieser Abspielmodus unterstützt nur eine einzelne Datei — bitte nur eine "
 "auswählen."
 
-#: app.py:156
+#: app.py:184
 #, python-format
 msgid "Card %(id)s assigned."
 msgstr "Karte %(id)s zugewiesen."
 
-#: app.py:168
+#: app.py:196
 msgid ""
 "Override deleted. This ESPuino now uses the global assignment when one "
 "exists."
 msgstr ""
 
-#: app.py:174
+#: app.py:202
 msgid "A global assignment already exists. Please confirm its replacement."
 msgstr "Es gibt bereits eine globale Zuweisung. Bitte deren Ersetzung bestätigen."
 
-#: app.py:176
+#: app.py:204
 msgid "Override promoted to global assignment."
 msgstr "Abweichung zur globalen Zuweisung gemacht."
 
-#: app.py:185
+#: app.py:209
+#, python-format
+msgid ""
+"Deleted all %(num)s pending card(s). Tapping an unknown card will "
+"register it again (unless disabled in the settings)."
+msgstr ""
+"%(num)s wartende Karte(n) gelöscht. Beim Auflegen einer unbekannten Karte "
+"wird sie erneut registriert (sofern in den Einstellungen nicht "
+"deaktiviert)."
+
+#: app.py:219
 #, python-format
 msgid "Secure delete could not be confirmed by %(esp_id)s."
 msgstr ""
 
-#: app.py:186
+#: app.py:220
 #, python-format
 msgid "Card %(id)s deleted."
 msgstr "Karte %(id)s gelöscht."
 
-#: app.py:194
+#: app.py:228
 #, python-format
 msgid "Force refresh triggered for %(num)s assignment."
 msgid_plural "Force refresh triggered for %(num)s assignments."
 msgstr[0] "Force Refresh für %(num)s Zuweisung ausgelöst."
 msgstr[1] "Force Refresh für %(num)s Zuweisungen ausgelöst."
 
-#: app.py:197
+#: app.py:231
 #, fuzzy, python-format
 msgid "Force refresh triggered for all %(num)s assignments."
 msgstr "Force Refresh für alle %(num)s Karten ausgelöst."
 
-#: app.py:231
+#: app.py:267
 msgid "Recursion depth must be between 0 and 20."
 msgstr "Die Rekursionstiefe muss zwischen 0 und 20 liegen."
 
-#: app.py:232
+#: app.py:268
 msgid "Settings saved."
 msgstr "Einstellungen gespeichert."
 
-#: app.py:237
+#: app.py:273
 msgid "Please enter a password."
 msgstr "Bitte ein Passwort eingeben."
 
-#: app.py:238
+#: app.py:274
 msgid "Passwords do not match."
 msgstr "Die Passwörter stimmen nicht überein."
 
-#: app.py:239
+#: app.py:275
 msgid "Hub password set."
 msgstr "Hub-Passwort gesetzt."
 
-#: app.py:242
+#: app.py:278
 msgid "Hub password removed."
 msgstr "Hub-Passwort entfernt."
 
-#: manifest.py:81
+#: manifest.py:82
 msgid "Single track"
 msgstr "Einzeltitel"
 
-#: manifest.py:82
+#: manifest.py:83
 msgid "Single track (loop)"
 msgstr "Einzeltitel (Endlosschleife)"
 
-#: manifest.py:83
+#: manifest.py:84
 msgid "Audiobook (remembers position)"
 msgstr "Hörbuch (merkt sich Position)"
 
-#: manifest.py:84
+#: manifest.py:85
 msgid "Audiobook (loop)"
 msgstr "Hörbuch (Endlosschleife)"
 
-#: manifest.py:85
+#: manifest.py:86
 msgid "Audiobook, recursive (remembers position)"
 msgstr "Hörbuch, rekursiv (merkt sich Position)"
 
-#: manifest.py:86
+#: manifest.py:87
 msgid "All tracks of a folder (sorted)"
 msgstr "Alle Titel eines Ordners (sortiert)"
 
-#: manifest.py:87
+#: manifest.py:88
 msgid "All tracks of a folder (shuffled)"
 msgstr "Alle Titel eines Ordners (zufällig)"
 
-#: manifest.py:88
+#: manifest.py:89
 msgid "All tracks of a folder (sorted, loop)"
 msgstr "Alle Titel eines Ordners (sortiert, Endlosschleife)"
 
-#: manifest.py:89
+#: manifest.py:90
 msgid "All tracks of a folder (shuffled, loop)"
 msgstr "Alle Titel eines Ordners (zufällig, Endlosschleife)"
 
-#: manifest.py:90
+#: manifest.py:91
 msgid "All tracks, recursive (shuffled)"
 msgstr "Alle Titel, rekursiv (zufällig)"
 
-#: manifest.py:91
+#: manifest.py:92
 msgid "All tracks, recursive (sorted)"
 msgstr "Alle Titel, rekursiv (sortiert)"
 
-#: manifest.py:92
+#: manifest.py:93
 msgid "Single random track of a folder"
 msgstr "Einzeltitel eines Ordners (zufällig)"
 
-#: manifest.py:93
+#: manifest.py:94
 msgid "Random subfolder (sorted)"
 msgstr "Zufälliger Unterordner (sortiert)"
 
-#: manifest.py:94
+#: manifest.py:95
 msgid "Random subfolder (shuffled)"
 msgstr "Zufälliger Unterordner (zufällig)"
+
+#: manifest.py:96
+msgid "Timed release"
+msgstr "Zeitgesteuerte Freigabe"
 
 #: templates/base.html:19 templates/index.html:5
 msgid "Overview"
@@ -260,16 +247,16 @@ msgstr "Medien"
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: templates/base.html:33
+#: templates/base.html:34
 msgid "Log out"
 msgstr "Abmelden"
 
-#: templates/base.html:53
+#: templates/base.html:54
 msgid "MediaHub · a local media hub for ESPuino"
 msgstr "MediaHub · ein lokaler Medien-Hub für ESPuino"
 
 #: templates/card_detail.html:3 templates/card_form.html:3
-#: templates/devices.html:35
+#: templates/devices.html:36
 msgid "Card"
 msgstr "Karte"
 
@@ -281,90 +268,90 @@ msgstr ""
 msgid "No display name"
 msgstr ""
 
-#: templates/card_detail.html:14
+#: templates/card_detail.html:15
 msgid "Force refresh"
 msgstr "Force Refresh"
 
-#: templates/card_detail.html:16
+#: templates/card_detail.html:17
 msgid "Back"
 msgstr ""
 
-#: templates/card_detail.html:24 templates/cards.html:73
+#: templates/card_detail.html:25 templates/cards.html:81
 msgid "Manifest"
 msgstr ""
 
-#: templates/card_detail.html:25
+#: templates/card_detail.html:26
 msgid "Preview of the effective manifest sent to the selected ESPuino."
 msgstr ""
 
-#: templates/card_detail.html:30
+#: templates/card_detail.html:31
 msgid "Manifest for"
 msgstr ""
 
-#: templates/card_detail.html:31 templates/card_detail.html:52
-#: templates/card_detail.html:114 templates/cards.html:21
+#: templates/card_detail.html:32 templates/card_detail.html:53
+#: templates/card_detail.html:117 templates/cards.html:29
 #: templates/media.html:3
 msgid "Global assignment"
 msgstr "Globale Zuweisung"
 
-#: templates/card_detail.html:38
+#: templates/card_detail.html:39
 msgid "For this ESPuino there is no valid media assignment."
 msgstr ""
 
-#: templates/card_detail.html:39
+#: templates/card_detail.html:40
 msgid "Could not load the manifest."
 msgstr ""
 
-#: templates/card_detail.html:39
+#: templates/card_detail.html:40
 msgid "Show manifest"
 msgstr ""
 
-#: templates/card_detail.html:46
+#: templates/card_detail.html:47
 msgid "There is no valid media assignment for this tag yet."
 msgstr ""
 
-#: templates/card_detail.html:54 templates/card_detail.html:86
+#: templates/card_detail.html:55 templates/card_detail.html:87
 msgid "Edit"
 msgstr "Bearbeiten"
 
-#: templates/card_detail.html:54
+#: templates/card_detail.html:55
 msgid "Add global assignment"
 msgstr "Globale Zuweisung hinzufügen"
 
-#: templates/card_detail.html:59
+#: templates/card_detail.html:60
 msgid "Valid for all ESPuinos"
 msgstr "Gültig für alle ESPuinos"
 
-#: templates/card_detail.html:61
+#: templates/card_detail.html:62
 msgid "This tag is not globally valid."
 msgstr ""
 
-#: templates/card_detail.html:67
+#: templates/card_detail.html:68
 msgid "Overrides"
 msgstr "Abweichende Zuweisungen"
 
-#: templates/card_detail.html:68 templates/card_detail.html:69
+#: templates/card_detail.html:69 templates/card_detail.html:70
 msgid "Add override"
 msgstr "Abweichung hinzufügen"
 
-#: templates/card_detail.html:78 templates/card_detail.html:110
-#: templates/cards.html:39
+#: templates/card_detail.html:79 templates/card_detail.html:113
+#: templates/cards.html:47
 msgid "ESPuino"
 msgstr "ESPuino"
 
-#: templates/card_detail.html:78 templates/card_detail.html:110
+#: templates/card_detail.html:79 templates/card_detail.html:113
 msgid "Effective assignment"
 msgstr "Effektive Zuweisung"
 
-#: templates/card_detail.html:78 templates/card_detail.html:110
+#: templates/card_detail.html:79 templates/card_detail.html:113
 msgid "Source"
 msgstr "Quelle"
 
-#: templates/card_detail.html:84 templates/card_detail.html:114
+#: templates/card_detail.html:85 templates/card_detail.html:117
 msgid "Override"
 msgstr "Abweichung"
 
-#: templates/card_detail.html:87
+#: templates/card_detail.html:88
 #, python-format
 msgid ""
 "A global assignment already exists. Replace it with the assignment from "
@@ -373,26 +360,26 @@ msgstr ""
 "Es gibt bereits eine globale Zuweisung. Soll sie durch die Zuweisung von "
 "%(device)s ersetzt werden?"
 
-#: templates/card_detail.html:89
+#: templates/card_detail.html:91
 msgid "Use as global assignment"
 msgstr "Als globale Zuweisung verwenden"
 
-#: templates/card_detail.html:91
+#: templates/card_detail.html:93
 msgid ""
 "Delete this override? This ESPuino will use the global assignment if one "
 "exists."
 msgstr ""
 
-#: templates/card_detail.html:92 templates/cards.html:75
-#: templates/devices.html:39
+#: templates/card_detail.html:95 templates/cards.html:84
+#: templates/devices.html:41
 msgid "Delete"
 msgstr "Löschen"
 
-#: templates/card_detail.html:101
+#: templates/card_detail.html:104
 msgid "No ESPuino-specific assignments."
 msgstr ""
 
-#: templates/card_detail.html:107
+#: templates/card_detail.html:110
 msgid "Effective assignments"
 msgstr "Effektive Zuweisungen"
 
@@ -409,70 +396,106 @@ msgstr "Globale Zuweisung, gültig für alle ESPuinos."
 msgid "Override for %(device)s. It completely replaces the global assignment."
 msgstr "Abweichung für %(device)s. Sie ersetzt die globale Zuweisung vollständig."
 
-#: templates/card_form.html:19
+#: templates/card_form.html:20
 msgid "Name"
 msgstr "Name"
 
-#: templates/card_form.html:19
+#: templates/card_form.html:20
 msgid "(display/logs only)"
 msgstr ""
 
-#: templates/card_form.html:20
+#: templates/card_form.html:21
 msgid "e.g. Bedtime Stories – Episode 12"
 msgstr ""
 
-#: templates/card_form.html:24
+#: templates/card_form.html:25
 msgid "Content type"
 msgstr "Inhaltstyp"
 
-#: templates/card_form.html:28
+#: templates/card_form.html:29
 msgid "Audio files"
 msgstr "Audiodateien"
 
-#: templates/card_form.html:39
+#: templates/card_form.html:40
 msgid "Play mode"
 msgstr "Abspielmodus"
 
-#: templates/card_form.html:48
+#: templates/card_form.html:50
+msgid "Start date"
+msgstr "Startdatum"
+
+#: templates/card_form.html:54
+msgid "Start time"
+msgstr "Startzeit"
+
+#: templates/card_form.html:58
+msgid "Interval"
+msgstr "Intervall"
+
+#: templates/card_form.html:62
+msgid "Unit"
+msgstr "Einheit"
+
+#: templates/card_form.html:63
+msgid "Minutes"
+msgstr "Minuten"
+
+#: templates/card_form.html:63
+msgid "Hours"
+msgstr "Stunden"
+
+#: templates/card_form.html:63
+msgid "Days"
+msgstr "Tage"
+
+#: templates/card_form.html:63
+msgid "Weeks"
+msgstr "Wochen"
+
+#: templates/card_form.html:63
+msgid "Months"
+msgstr "Monate"
+
+#: templates/card_form.html:72
 #, fuzzy
 msgid "Selected media"
 msgstr "Ausgewählte Dateien"
 
-#: templates/card_form.html:50
+#: templates/card_form.html:74
 #, fuzzy
 msgid "No files or folders selected yet — browse the library below."
 msgstr "Noch keine Dateien ausgewählt — unten in der Bibliothek stöbern."
 
-#: templates/card_form.html:54
+#: templates/card_form.html:78
 msgid "Media library"
 msgstr "Medienbibliothek"
 
-#: templates/card_form.html:55
+#: templates/card_form.html:79
 msgid "Folders are saved as sources and expanded when the manifest is generated."
 msgstr ""
 
-#: templates/card_form.html:64
+#: templates/card_form.html:88
 msgid "Use folder"
 msgstr "Ordner verwenden"
 
-#: templates/card_form.html:65
+#: templates/card_form.html:89
 #, fuzzy
 msgid "Remove folder"
 msgstr "Ordner verwenden"
 
-#: templates/card_form.html:66
+#: templates/card_form.html:90
 msgid "No audio files here."
 msgstr "Keine Audiodateien hier."
 
-#: templates/card_form.html:67
+#: templates/card_form.html:91
 msgid "Remove"
 msgstr "Entfernen"
 
-#: templates/card_form.html:68
+#: templates/card_form.html:92
 msgid "Could not list this folder (permission denied?)."
 msgstr "Ordner konnte nicht gelistet werden (Zugriff verweigert?)."
 
-#: templates/card_form.html:70
+#: templates/card_form.html:94
 #, fuzzy
 msgid ""
 "This play mode only supports a single file — pick a different mode to "
@@ -481,20 +504,20 @@ msgstr ""
 "Dieser Abspielmodus unterstützt nur eine Datei — für mehrere einen "
 "anderen Modus wählen."
 
-#: templates/card_form.html:72
+#: templates/card_form.html:96
 msgid "Folder content is resolved recursively for this play mode."
 msgstr ""
 
-#: templates/card_form.html:81
+#: templates/card_form.html:105
 msgid "Stream URL"
 msgstr "Stream-URL"
 
-#: templates/card_form.html:87 templates/devices.html:32
-#: templates/settings.html:40
+#: templates/card_form.html:111 templates/devices.html:33
+#: templates/settings.html:48
 msgid "Save"
 msgstr "Speichern"
 
-#: templates/card_form.html:88
+#: templates/card_form.html:112
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -508,76 +531,91 @@ msgid ""
 "content for individual ESPuinos."
 msgstr ""
 
-#: templates/cards.html:14
+#: templates/cards.html:15
 msgid "Force refresh (all)"
 msgstr "Force Refresh (alle)"
 
-#: templates/cards.html:20 templates/cards.html:59
+#: templates/cards.html:18
+msgid ""
+"Delete ALL pending cards? They have no assignment yet and will be re-"
+"registered on the next tap (unless new registrations are rejected in the "
+"settings)."
+msgstr ""
+"ALLE wartenden Karten löschen? Sie haben noch keine Zuweisung und werden "
+"beim nächsten Auflegen neu registriert (sofern neue Anmeldungen in den "
+"Einstellungen nicht abgelehnt werden)."
+
+#: templates/cards.html:20
+msgid "Delete all pending"
+msgstr "Alle wartenden löschen"
+
+
+#: templates/cards.html:28 templates/cards.html:67
 msgid "Validity"
 msgstr ""
 
-#: templates/cards.html:27
+#: templates/cards.html:35
 msgid "12-digit card ID"
 msgstr "12-stellige Karten-ID"
 
-#: templates/cards.html:29
+#: templates/cards.html:37
 msgid "Add card"
 msgstr "Karte hinzufügen"
 
-#: templates/cards.html:30
+#: templates/cards.html:38
 #, fuzzy
 msgid "Choose Global assignment or an ESPuino-specific assignment."
 msgstr "Globale Zuweisung, gültig für alle ESPuinos."
 
-#: templates/cards.html:34 templates/cards.html:60
+#: templates/cards.html:42 templates/cards.html:68
 msgid "Status"
 msgstr "Status"
 
-#: templates/cards.html:35
+#: templates/cards.html:43
 #, fuzzy
 msgid "All statuses"
 msgstr "Status"
 
-#: templates/cards.html:36
+#: templates/cards.html:44
 msgid "pending"
 msgstr "wartend"
 
-#: templates/cards.html:37
+#: templates/cards.html:45
 msgid "assigned"
 msgstr "zugewiesen"
 
-#: templates/cards.html:45
+#: templates/cards.html:53
 msgid "Search tags, content or ESPuino"
 msgstr ""
 
-#: templates/cards.html:46
+#: templates/cards.html:54
 msgid "Search"
 msgstr ""
 
-#: templates/cards.html:51
+#: templates/cards.html:59
 msgid "No cards match these filters."
 msgstr ""
 
-#: templates/cards.html:57 templates/media.html:3
+#: templates/cards.html:65 templates/media.html:3
 msgid "Card ID"
 msgstr "Karten-ID"
 
-#: templates/cards.html:58
+#: templates/cards.html:66
 msgid "Content"
 msgstr "Inhalt"
 
-#: templates/cards.html:69
+#: templates/cards.html:77
 #, fuzzy, python-format
 msgid "%(num)s override"
 msgid_plural "%(num)s overrides"
 msgstr[0] "Abweichung"
 msgstr[1] ""
 
-#: templates/cards.html:72 templates/media.html:3
+#: templates/cards.html:80 templates/media.html:3
 msgid "Manage"
 msgstr "Verwalten"
 
-#: templates/cards.html:74
+#: templates/cards.html:82
 #, python-format
 msgid "Really delete card %(id)s?"
 msgstr "Karte %(id)s wirklich löschen?"
@@ -615,7 +653,7 @@ msgstr "Alias"
 msgid "Last seen"
 msgstr "Zuletzt gesehen"
 
-#: templates/devices.html:31
+#: templates/devices.html:32
 msgid "e.g. Kids room"
 msgstr "z. B. Kinderzimmer"
 
@@ -657,7 +695,7 @@ msgstr ""
 msgid "Delete behavior (lazy/secure) and other options."
 msgstr "Löschverhalten (lazy/secure) und weitere Optionen."
 
-#: templates/login.html:3 templates/login.html:7 templates/login.html:18
+#: templates/login.html:3 templates/login.html:7 templates/login.html:19
 msgid "Sign in"
 msgstr "Anmelden"
 
@@ -665,7 +703,7 @@ msgstr "Anmelden"
 msgid "This MediaHub is password-protected."
 msgstr "Dieser MediaHub ist passwortgeschützt."
 
-#: templates/login.html:14
+#: templates/login.html:15
 msgid "Password"
 msgstr "Passwort"
 
@@ -695,15 +733,15 @@ msgstr ""
 "Legt fest, wie sich der Hub beim Löschen einer Kartenzuweisung verhält, "
 "und wie tief er bei rekursiven Abspielmodi in Unterordner schaut."
 
-#: templates/settings.html:13
+#: templates/settings.html:14
 msgid "Delete behavior"
 msgstr "Löschverhalten"
 
-#: templates/settings.html:18
+#: templates/settings.html:19
 msgid "Lazy delete"
 msgstr "Lazy Delete"
 
-#: templates/settings.html:19
+#: templates/settings.html:20
 msgid ""
 "the hub only removes its own entry. The card keeps playing on the ESPuino"
 " from its local cache, even offline — it is not removed from the ESPuino "
@@ -713,11 +751,11 @@ msgstr ""
 "aus dem lokalen Cache weiter, auch offline. Sie wird also auf dem ESPuino"
 " nicht entfernt."
 
-#: templates/settings.html:25
+#: templates/settings.html:26
 msgid "Secure delete"
 msgstr "Secure Delete"
 
-#: templates/settings.html:26
+#: templates/settings.html:27
 msgid ""
 "the hub first calls DELETE /rfid on the ESPuino and only removes its own "
 "entry after a confirmed 200 response — the card is only deleted in the "
@@ -728,11 +766,11 @@ msgstr ""
 "also erst gelöscht, wenn der Löschvorgang auf dem ESPuino erfolgreich "
 "war."
 
-#: templates/settings.html:33
+#: templates/settings.html:34
 msgid "Recursion depth"
 msgstr "Rekursionstiefe"
 
-#: templates/settings.html:36
+#: templates/settings.html:37
 msgid ""
 "How many subfolder levels \"Use folder\" descends into for recursive play"
 " modes (Audiobook recursive, All tracks recursive). Non-recursive play "
@@ -743,11 +781,28 @@ msgstr ""
 "rekursive Modi nutzen unabhängig von dieser Einstellung immer nur den "
 "Ordner selbst."
 
-#: templates/settings.html:45
+#: templates/settings.html:41
+msgid "Card registration"
+msgstr "Kartenanmeldung"
+
+
+#: templates/settings.html:44
+msgid ""
+"Accept new registrations — unknown cards tapped on an ESPuino are "
+"registered as \"pending\" so they can be assigned afterwards. When "
+"disabled, unknown cards are rejected with 404 and never appear in the "
+"hub; cards added manually below are unaffected."
+msgstr ""
+"Neue Anmeldungen annehmen — unbekannte, auf einem ESPuino aufgelegte Karten "
+"werden als \"wartend\" registriert und können danach zugewiesen werden. "
+"Deaktiviert werden unbekannte Karten mit 404 abgewiesen und erscheinen nie "
+"im Hub; manuell hinzugefügte Karten sind nicht betroffen."
+
+#: templates/settings.html:53
 msgid "Hub password"
 msgstr "Hub-Passwort"
 
-#: templates/settings.html:46
+#: templates/settings.html:54
 msgid ""
 "Optional — protects the web UI below. The ESPuino-facing API stays "
 "reachable either way, since devices can't log in."
@@ -756,19 +811,19 @@ msgstr ""
 "API bleibt in jedem Fall erreichbar, da sich Geräte nicht anmelden "
 "können."
 
-#: templates/settings.html:51
+#: templates/settings.html:60
 msgid "New password"
 msgstr "Neues Passwort"
 
-#: templates/settings.html:55
+#: templates/settings.html:64
 msgid "Confirm new password"
 msgstr "Neues Passwort bestätigen"
 
-#: templates/settings.html:59
+#: templates/settings.html:68
 msgid "Set password"
 msgstr "Passwort setzen"
 
-#: templates/settings.html:61
+#: templates/settings.html:70
 msgid "Remove password"
 msgstr "Passwort entfernen"
 
@@ -1017,3 +1072,4 @@ msgstr "Passwort entfernen"
 
 #~ msgid "Last card"
 #~ msgstr "Letzte Karte"
+

@@ -28,6 +28,7 @@
 					<td class="technical-id"><code>{{ esp_id }}</code><span class="content-detail">{{ dev.ip }}</span></td>
 					<td>
 						<form class="alias-form" method="post" action="{{ url_for('set_device_alias', esp_id=esp_id) }}">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 							<input type="text" name="alias" value="{{ dev.alias or '' }}" placeholder="{{ _('e.g. Kids room') }}" maxlength="60">
 							<button class="btn btn-small btn-secondary" type="submit">{{ _('Save') }}</button>
 						</form>
@@ -36,6 +37,7 @@
 					<td>{{ card_count }}</td>
 					<td class="table-actions">
 						<form class="confirm-form" method="post" action="{{ url_for('delete_device', esp_id=esp_id) }}" data-confirm="{{ delete_confirm }}">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 							<button class="btn btn-small btn-danger" type="submit">{{ _('Delete') }}</button>
 						</form>
 					</td>

@@ -9,6 +9,7 @@
 </section>
 
 <form class="form-card" method="post">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 	<div class="form-row">
 		<span class="form-label">{{ _('Delete behavior') }}</span>
 		<div class="radio-group radio-group-stacked">
@@ -36,6 +37,13 @@
 		<p class="muted">{{ _('How many subfolder levels "Use folder" descends into for recursive play modes (Audiobook recursive, All tracks recursive). Non-recursive play modes always use just the folder itself, regardless of this setting.') }}</p>
 	</div>
 
+	<div class="form-row">
+		<span class="form-label">{{ _('Card registration') }}</span>
+		<label class="checkbox-option">
+			<input type="checkbox" name="auto_register" value="1" {{ "checked" if settings.auto_register }}>
+			<span>{{ _('Accept new registrations — unknown cards tapped on an ESPuino are registered as "pending" so they can be assigned afterwards. When disabled, unknown cards are rejected with 404 and never appear in the hub; cards added manually below are unaffected.') }}</span>
+		</label>
+	</div>
 	<div class="form-actions">
 		<button class="btn" type="submit">{{ _('Save') }}</button>
 	</div>
@@ -47,6 +55,7 @@
 </section>
 
 <form class="form-card" method="post" action="{{ url_for('set_password') }}">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 	<div class="form-row">
 		<label for="new_password">{{ _('New password') }}</label>
 		<input type="password" id="new_password" name="new_password" autocomplete="new-password">

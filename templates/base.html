@@ -30,6 +30,7 @@
 			</div>
 			{% if hub_password_set and session.get('authenticated') %}
 			<form method="post" action="{{ url_for('logout') }}" class="logout-form">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 				<button type="submit" class="logout-btn">{{ _('Log out') }}</button>
 			</form>
 			{% endif %}
