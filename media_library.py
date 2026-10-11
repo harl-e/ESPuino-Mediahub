@@ -188,6 +188,19 @@ def _cached_hash(abs_path, size, mtime_ns):
     _HASH_CACHE_DIRTY = True
     return digest
 
+def stat_size(media_root, relpath):
+    """Like stat_and_hash but only validates and returns the byte size -
+    no SHA-256 computation. Used for aggregate statistics (index page,
+    media overview) where the digest is irrelevant and hashing every
+    file of every assignment would dominate the request time."""
+    abs_path = resolve(media_root, relpath)
+    if abs_path is None or not os.path.isfile(abs_path) or not is_audio_file(abs_path):
+        return None
+    try:
+        return os.stat(abs_path).st_size
+    except OSError:
+        return None
+
 def stat_and_hash(media_root, relpath):
     """Validates relpath is a real, readable audio file inside media_root and
     returns {"path", "size", "sha256"} (path normalized with forward

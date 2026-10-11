@@ -101,13 +101,10 @@ def _canonical_json(obj):
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def resolve_files(assignment, media_dir, recursion_depth):
-    """Expand stored folder sources only when creating a manifest.
-
-    Assignment JSON deliberately contains paths, not a frozen file listing.
-    Folders preserve their configured order, then explicit files are appended;
-    an ordered set removes overlaps without changing playlist order.
-    """
+def resolve_paths(assignment, media_dir, recursion_depth):
+    """Expand folder sources to a deduplicated, ordered list of relative
+    file paths - no stat/hash I/O. Shared by resolve_files() and callers
+    that only need paths or sizes (UI statistics)."""
     import media_library  # avoids importing file-system code for webradio
     paths, seen = [], set()
     recursive = assignment.get("play_mode") in RECURSIVE_PLAY_MODES
@@ -121,8 +118,19 @@ def resolve_files(assignment, media_dir, recursion_depth):
     for path in assignment.get("files", []):
         path = path.get("path") if isinstance(path, dict) else path
         if path not in seen: paths.append(path); seen.add(path)
+    return paths
+
+
+def resolve_files(assignment, media_dir, recursion_depth):
+    """Expand stored folder sources only when creating a manifest.
+
+    Assignment JSON deliberately contains paths, not a frozen file listing.
+    Folders preserve their configured order, then explicit files are appended;
+    an ordered set removes overlaps without changing playlist order.
+    """
+    import media_library
     files = []
-    for path in paths:
+    for path in resolve_paths(assignment, media_dir, recursion_depth):
         info = media_library.stat_and_hash(media_dir, path)
         if info is None:
             log.warning("MediaHub: assigned audio file is missing or unreadable: %s", path)
