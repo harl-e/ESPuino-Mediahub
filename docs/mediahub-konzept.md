@@ -77,6 +77,8 @@ Die Karten-ID lässt sich nur mit einem Kartenleser ermitteln — das Zuweisen p
 - Gespeichert als **eigener Settings-Eintrag** (NVS) — **nicht** im RFID-Zuweisungsformat. Die Vorgabe „NVS-Zuweisungsformat unverändert" bleibt gewahrt.
 - Bei der RFID-Zuweisung wählt man den Server aus einem **Dropdown**; das Pfad-Feld wird automatisch mit `mediahub://<host:port>` befüllt.
 - Ist nur ein Server registriert, wird er vorausgewählt. Optional kann das Web-UI die Erreichbarkeit des Hubs prüfen (kurzer Test-Request).
+- Je Eintrag ist zusätzlich **http/https** wählbar (das Schema landet mit im NVS-Pfad-Feld, z. B. `mediahub://https://host:port`, und wird zur Laufzeit ausgewertet). Ein optionaler, dateisystem-sicherer **Alias** dient nur der Anzeige im sichtbaren Speicher (§13.2) — nicht der technischen Identität (die bleibt der URL-abgeleitete Hub-Key; Alias-Umbenennung migriert bestehende Ordner bewusst nicht).
+- Die **Reihenfolge der Liste ist eine Priorität** (im Web-UI umsortierbar, max. 10 Einträge). Für den Laufzeit-Ablauf einer expliziten `mediahub://`-Karte ist sie bedeutungslos — diese Karte kennt nur den einen Hub aus ihrem NVS-Pfad-Feld. Für AutoSync (§5.6) wird sie dagegen als Rangfolge abgearbeitet.
 
 Das ist reine Enrollment-Ergonomie; der Laufzeit-Ablauf (§11) bleibt unberührt.
 
@@ -84,7 +86,9 @@ Das ist reine Enrollment-Ergonomie; der Laufzeit-Ablauf (§11) bleibt unberührt
 
 Damit eine Karte überhaupt bekannt ist (Voraussetzung für den Offline-Fall), muss im NVS ein Eintrag `cardId → mediahub://host:port` liegen. Dieser Eintrag ist **uniform** — die inhaltlichen Details stehen im Manifest, nicht im NVS.
 
-Der **einzige** Weg dorthin ist das **manuelle Anlernen (§5.1)**: Karte am ESPuino auflegen, Hub-Server wählen, speichern. Einen automatischen Bulk-Sync vom Hub gibt es bewusst **nicht** — die „diese Karte → dieser Hub"-Verdrahtung macht man pro Gerät von Hand. Die *Inhalte* (Dateiliste, playMode) bleiben davon unberührt zentral am Hub verwaltet und kommen on-demand beim Auflegen.
+Der Weg dorthin ist das **manuelle Anlernen (§5.1)**: Karte am ESPuino auflegen, Hub-Server wählen, speichern. Einen automatischen Bulk-Sync vom Hub gibt es bewusst **nicht** — die „diese Karte → dieser Hub"-Verdrahtung macht man pro Gerät von Hand. Die *Inhalte* (Dateiliste, playMode) bleiben davon unberührt zentral am Hub verwaltet und kommen on-demand beim Auflegen.
+
+**Zweiter Weg: AutoSync (§5.6).** Ist AutoSync am ESPuino aktiviert, wird eine Karte, die dem Gerät lokal **unbekannt** ist, beim Auflegen gegen die priorisierte Hub-Liste (§5.1) aufgelöst: Der erste Hub mit einer zugewiesenen Karte gewinnt, lädt deren Inhalt (inkl. erforderlicher Downloads) und **schreibt anschließend eine normale lokale NVS-Zuweisung** — dieselbe Form wie eine handangelegte Karte, nur mit lokalem Pfad statt `mediahub://`. Damit ist AutoSync ein reiner **Enrollment-Mechanismus**: Er macht die Karte dauerhaft lokal unabhängig vom Hub (die Hub-Verdrahtung „vergisst" das Gerät danach bewusst).
 
 **Offline-Klarstellung:** Ein NVS-Eintrag macht eine Karte *bekannt*, aber noch nicht *abspielbar*. Dafür müssen zusätzlich das gecachte Manifest **und** die Mediendateien lokal liegen — was durch **einmaliges Auflegen zu Hause** passiert (Mechanismus a lädt Manifest + Dateien). Erst danach funktioniert die Karte offline (Auto).
 
@@ -142,12 +146,31 @@ Einrichtungs-Ablauf end-to-end:
 
 **Gerät löschen.** Der Admin kann einen Geräte-Eintrag (Alias, IP, „zuletzt gesehen") im Hub-UI wieder entfernen. Da Zuweisungen an die `espId` gebunden sind, fragt der Hub dabei ab, wie viele Zuweisungen betroffen sind, und lässt sie **auf Bestätigung mit löschen** (kaskadierend) — das betrifft ausdrücklich nur den Hub-eigenen Datensatz, nie den ESPuino selbst oder dessen NVS/SD-Cache. Meldet sich das Gerät später erneut (Tap), wird es beim nächsten Manifest-Request automatisch neu registriert.
 
+### 5.6 AutoSync: Hub-Push-Enrollment und lokale Hinterlegung
+
+AutoSync ist ein **bewusst opt-in**-Setting am ESPuino (NVS `mhAutoSync`, Web-UI-Toggle, Default **aus**), damit bestehende Installationen nach einem Update exakt ihr altes Verhalten behalten. Es ist ausschließlich ein **Enrollment-Mechanismus für lokal unbekannte Karten** — bevor die normale Wiedergabe-Logik greift, fragt `RfidCommon` bei einer in NVS unbekannten Karte `MediaHub_TryAutoSync()`:
+
+1. **Auflösung über die priorisierte Hub-Liste** (§5.1, oben nach unten). Pro Hub wird der leichtgewichtige **`resolve`-Endpunkt** (§6) befragt; ein antwortender, aber nicht zuordnender Hub wird als erreichbarer „Miss" notiert. **Der erste Hub mit `assigned: true` gewinnt** — für ihn gibt es keinen weiteren Request an tiefer priorisierte Hubs. Das hält die Discovery billig und verhindert, dass eine Karte auf dem „falschen" Hub als pending landet.
+2. **Push der Karten-ID:** Erreicht der AutoSync-Lauf keinen zuweisenden Hub, werden die erreichbaren Misses per **`seen`-Endpunkt** (§6) über das reale Auflegen informiert (`POST /<espId>/card/<cardId>/seen`) — der Hub registriert die Karte dabei wie bei jedem echten Tap (pending gemäß `auto_register`, §5.3), damit der Admin sie im Hub-UI sieht und zuweisen kann. Nur das vorgeschaltete **`resolve`-Probing** erzeugt nie Einträge.
+3. **Download & lokale Hinterlegung:** Ein Treffer lädt das Manifest (ggf. per WEBSTREAM direkt die Stream-URL), synchronisiert die Dateien wie in §10 und **persistiert danach eine normale lokale NVS-Zuweisung** (`#lastPlayPos#playMode#trackLastPlayed`, echter playMode — nicht der `MEDIAHUB`-Marker, kein `mediahub://`). Bereits gespeicherte Hörbuch-Positionen werden dabei bewusst erhalten.
+
+**Konsequenzen des lokalen Hinterlegens (gewollt):**
+- Jeder weitere Tap der Karte läuft über ESPuinos normalen lokalen Pfad — ohne Netzwerk und ohne Hub-Kontakt. Damit sind AutoSync-Karten automatisch voll offline-fähig.
+- Hub-seitige **Änderungen propagieren nicht mehr automatisch** zur Karte, weil der `MEDIAHUB`-Marker (und damit der `version`-Check aus §9) nach dem Enrollment fehlt. Ein Inhalts-Update erfordert entweder das Löschen der lokalen Zuweisung (erneuter AutoSync-Tap) oder eine **MediaHub-Sync-Modifier-Karte** (`CMD_MEDIAHUB_SYNC`, s. u.): Sie synchronisiert **alle** gecachten Manifeste gegen ihren Hub (nur fehlende Dateien herunterladen, nie Wiedergabe starten) und überschreibt dabei die lokalen NVS-Zuweisungen mit.
+- AutoSync bewusst ohne Fallback-Parameter: Die Karte wird erst nach vollständigem Sync als lokal bekannt markiert — es gibt bewusst **keinen** Fallback auf ein „leeres" oder halbfertiges Assignment.
+
+**Zusammenspiel mit dem sichtbaren Speicher (§13.2):** AutoSync nutzt das sichtbare Layout (`/MediaHub/<hubKey>`) **immer**; explizite `mediahub://`-Karten können es zusätzlich per separatem Opt-in (`mhVisible`) aktivieren.
+
 ## 6. Endpunkte
 
 ```text
 Manifest (pro Karte)   GET  http://<host:port>/<espId>/card/<cardId>/manifest.json
+Resolve (AutoSync)     GET  http://<host:port>/<espId>/card/<cardId>/resolve
+Seen (AutoSync-Push)   POST http://<host:port>/<espId>/card/<cardId>/seen
 Mediendateien          GET  <filesBaseUrl>/<files[].path>
 ```
+
+**`resolve`** antwortet `assigned: true/false` (kein Body-Download, keine Registrierung) — der Discovery-Schritt des AutoSync (§5.6). **`seen`** teilt dem Hub das reale Auflegen einer Karte mit (Geräte-/Karten-Tracking, ggf. pending-Registrierung je `auto_register`, §5.3) — der Push-Schritt des AutoSync. Beide Endpunkte sind bewusst vom Manifest-Endpunkt getrennt: Das reine **`resolve`-Probing** der priorisierten Liste erzeugt nie Einträge am Hub — nur ein **`seen`** (reales Auflegen, wie im Manifest-Fall) bzw. der klassische Manifest-Request selbst kann eine Karte als pending registrieren (§5.3).
 
 Ein Manifest-Request beim Auflegen dient zugleich der **Registrierung** (§5.3): Kennt der Hub die Karte noch nicht, legt er sie als noch-nicht-zugewiesen an und antwortet negativ. Ein separater Register-Endpoint ist damit nicht nötig.
 
@@ -240,6 +263,8 @@ Die Hörbuch-Modi (`AUDIOBOOK`, `AUDIOBOOK_LOOP`, `AUDIOBOOK_RECURSIVE`) merken 
   - **pro Karte** (Button im Hub-UI / Admin-Karte)
   - **für alle Karten** (alle gecachten `version`-Werte verwerfen → jede Karte lädt beim nächsten Auflegen neu)
 
+**Hub-seitiger Force Refresh (`force_epoch`).** Der Hub-UI-Button „Force refresh" (pro Karte bzw. „alle") erhöht serverseitig einen `_forceEpoch`-Zähler der Zuweisung. Dieser fließt **in den `version`-Hash ein, erscheint aber nicht im Manifest** (§7.1): Jede folgende Manifest-Auslieferung hat eine neue `version`, der Hintergrund-Check der betroffenen Karte erkennt die Abweichung → „stale" → Re-Sync beim nächsten Auflegen (§11). Der Hub muss dafür den ESPuino nicht erreichen — der Abgleich passiert beim nächsten Kontakt von selbst.
+
 ## 10. Kernoperation `MediaHub_EnsureCard`
 
 Die Primitive kapselt Manifest-Beschaffung, lokalen Integritätscheck und Download. Sie läuft **im Vordergrund beim Auflegen** (mit Play + Fortschritt). Der Hintergrund-`version`-Check danach lädt **nichts** — er markiert bei einer Änderung nur „stale" (§9, §11).
@@ -276,6 +301,7 @@ MediaHub_EnsureCard(cardId, {showProgress}):
 ```
 
 - **Vordergrund (beim Auflegen):** `EnsureCard(card, showProgress=true)`; bei `BEREIT` folgt die Wiedergabe.
+- **Inkrementell, nicht „alles oder nichts":** Der Abgleich einer nicht-stale-Karte lädt **nur die Dateien nach, die fehlen oder deren lokale Größe vom Manifest abweicht** — unveränderte Dateien bleiben unberührt (Datei-Identität ist `path/size/sha256`). Das Wipe-und-alles-neu-Muster gilt ausschließlich für den stale-Re-Sync (§11).
 - **Danach:** ein **leichter Hintergrund-`version`-Check** (nur Manifest holen + vergleichen, kein Download). Bei Änderung → Karte „stale" markieren; das eigentliche Update macht der **nächste** Auflege-Vorgang (Wipe + Neuladen).
 
 ## 11. Ablauf beim Kartenauflegen (Mechanismus a)
@@ -289,7 +315,7 @@ flowchart TD
     D -- nein --> P[Normale Wiedergabe wie heute<br/>SD-Pfad / Webradio / Modifikation]
     D -- ja --> ST{Karte "stale"<br/>und Hub erreichbar?}
     ST -- ja --> RS[Re-Sync im Vordergrund:<br/>neues Manifest, Ordner wipen,<br/>neu laden, Ring-Fortschritt]
-    RS --> PLAY
+    RS --> NEXTTAP[[Kein automatischer Start:<br/>nächster Tap spielt die<br/>nun vollständige lokale Kopie]]
     ST -- nein --> E[Manifest bestimmen<br/>Cache: /.mediahub/manifests/cardId.json]
     E --> F{Cache<br/>vorhanden?}
     F -- nein --> H{Hub<br/>erreichbar?}
@@ -315,7 +341,7 @@ flowchart TD
 
 1. Karte → `cardId`. NVS-Lookup (sofort, lokal).
 2. Kein `MEDIAHUB`-playMode → alles wie bisher (SD, Webradio, Modifikation).
-3. `MEDIAHUB` + Karte „stale" & Hub erreichbar → **Vordergrund-Re-Sync** (neues Manifest, Ordner wipen, neu laden), dann neue Version spielen.
+3. `MEDIAHUB` + Karte „stale" & Hub erreichbar → **Vordergrund-Re-Sync** (neues Manifest, Ordner wipen, neu laden). **Kein automatischer Start danach** (bewusste Abweichung vom ursprünglichen Flowchart): Ein Re-Sync kann Minuten dauern, und ungefragtes Losspielen nach der langen stillen Wartezeit überraschte mehr als es half — der nächste Tap spielt stattdessen sofort aus der nun vollständigen lokalen Kopie. Scheitert der Re-Sync (Hub weg, ungültiges Manifest, SD zu voll für die neue Version), bleibt die **alte, weiterhin vollständige Kopie** als besserer Fallback erhalten und die Karte bleibt „stale" für den nächsten Versuch.
 4. Sonst: Manifest aus Cache (oder, falls fehlend und Hub erreichbar, einmalig laden).
 5. Alle Dateien lokal & Größen passen → **sofort spielen** (offline-tauglich).
 6. Sonst & Hub erreichbar → **Vordergrund-Download** mit Ring-Fortschritt, danach spielen.
@@ -363,6 +389,20 @@ Ein Code-Pfad für beide Auslöser: Der **Nutzer** löscht die Karte im ESPuino-
 
 **Aufräumen bei Inhaltsänderung.** Ein Content-Update räumt implizit auf: Beim Re-Sync (nächstes Auflegen einer „stale"-Karte, §11) wird `/.mediahub/media/<cardId>/` **geleert und neu befüllt** — verwaiste Dateien verschwinden dabei automatisch.
 
+### 13.2 Sichtbarer Speicher (Option B-Erweiterung)
+
+Das Ablage-Layout ist umschaltbar (ESPuino-Web-UI, NVS `mhVisible`):
+
+```text
+Versteckt (Default):          Sichtbar:
+/.mediahub/media/<cardId>/    /MediaHub/<hubKey>/
+/.mediahub/manifests/<…>      /.mediahub/manifests/<hubKey>/<cardId>.json
+```
+
+- Im sichtbaren Modus liegen die Dateien **aller Karten eines Hubs gemeinsam** unter `/MediaHub/<hubKey>/` (Pfade relativ zur Bibliothekswurzel, wie `filesBaseUrl`), sodass der Inhalt im Datei-Browser nutzbar wird. Der Hub-Key ist ein stabiler, URL-abgeleiteter Hash (plus wählbarer Anzeige-Alias, §5.1).
+- **AutoSync nutzt das sichtbare Layout immer**; explizite `mediahub://`-Karten schalten es per separatem Opt-in zu.
+- Konsequenz fürs Aufräumen: Im sichtbaren Modus ist der Medienordner **einer einzelnen Karte nicht mehr eindeutig zuordenbar** — das Wipe einer Karte (`MediaHub_ForceRefresh`/`MediaHub_DeleteCard`, §9/§13.1) löscht dort nur Manifest-Cache und stale-Marker, **nie** `/MediaHub`-Inhalte: Diese sind bewusst nutzerverwaltet und werden auch vom Wartungs-Cleanup (`MediaHub_CleanupAllHidden`/`CleanupOrphanedHidden`, Web-UI) nie angetastet — er räumt ausschließlich den versteckten `/.mediahub`-Baum auf. Ein Wechsel des Layouts migriert bestehende Ordner nicht; der nächste Sync lädt an den neuen Ort.
+
 ## 14. Offline- & Fehlerverhalten
 
 **Offline / Hub nicht erreichbar (transient):**
@@ -384,6 +424,7 @@ Ein Code-Pfad für beide Auslöser: Der **Nutzer** löscht die Karte im ESPuino-
 ## 15. Offene Punkte / später
 
 - Keine offenen **Konzept**-Fragen mehr. Verbleibende Details (LED-Fehlermuster, Web-UI-Status-Texte, genaue „needs resync"-Retry-Politik) klären sich bei der Umsetzung.
+- `MediaHub_ForceRefresh(All)()` (§9) ist implementiert, aber noch an keinen Auslöser gebunden (Admin-Karte / Hub-Button steht aus). Hub-seitig deckt `force_epoch` denselben Zweck bereits ab.
 
 ## 16. Entscheidungslog
 
@@ -420,6 +461,12 @@ Ein Code-Pfad für beide Auslöser: Der **Nutzer** löscht die Karte im ESPuino-
 | 29 | **Play-Position-Persistenz (§8.1):** NVS-Format korrigiert auf die tatsächlichen vier Felder `path#lastPlayPos#playMode#trackLastPlayed`. `AudioPlayer_NvsRfidWriteWrapper()` muss bei einem `mediahub://`-Pfad das `playMode`-Feld beim Zurückschreiben immer auf `MEDIAHUB` erzwingen (statt des echten, gerade abgespielten Modus) — sonst überschreibt der erste Pause-/Trackwechsel-Save den Marker und die Karte wird beim nächsten Auflegen nicht mehr als MediaHub-Karte erkannt. `AudioPlayer_SetPlaylist()` wird beim Abspielen mit dem echten Manifest-`playMode` plus den aus dem NVS gelesenen `lastPlayPos`/`trackLastPlayed` aufgerufen — dadurch greifen `saveLastPlayPosition` und der Shutdown-Flush unverändert, ohne dass AudioPlayer.cpp/System.cpp MediaHub kennen müssen. |
 | 31 | **CSRF-Schutz für das Hub-Web-UI:** Alle POST-Requests der Verwaltungsoberfläche benötigen ein per Session generiertes Token (Hidden-Feld `csrf_token`), das serverseitig vor jeder zustandsändernden Aktion validiert wird (Fehlen/Unstimmigkeit → 400). Die ESPuino-Endpunkte (§6, geräteseitig tokenlos) sind ausgenommen. Auch „alle wartenden Karten löschen“ und „neue Anmeldungen annehmen/ablehnen“ (§5.3) laufen unter diesem Schutz. |
 | 30 | **Downloadpuffer-Lebensdauer an den TLS-Handshake gekoppelt (§13):** Die beiden 16-KB-Doppelpuffer werden pro Datei erst nach erfolgreichem Handshake alloziert (bevorzugt intern, PSRAM nur als Fallback) und nach dem Transfer sofort wieder freigegeben — dauerhafte interne Allokation hätte dem https-Handshake der jeweils nächsten Datei den nötigen zusammenhängenden Heap weggenommen (`HTTPC_ERROR_CONNECTION_REFUSED`, auf echter Hardware reproduziert). |
+| 32 | **AutoSync ist ein reiner Enrollment-Mechanismus (§5.6):** Nur für lokal unbekannte Karten; der erste zuweisende Hub gewinnt (priorisierte Liste); danach wird eine **normale lokale NVS-Zuweisung** (echter playMode, kein `MEDIAHUB`-Marker) persistiert. Konsequenz bewusst akzeptiert: AutoSync-Karten sind danach offline-fähig, aber Hub-Änderungen erreichen sie nicht mehr automatisch (nur über erneuten AutoSync nach Löschen der lokalen Zuweisung oder die MediaHub-Sync-Modifier-Karte). Opt-in per Web-UI-Toggle, damit Bestandsinstallationen ihr Verhalten behalten. |
+| 33 | **AutoSync-Discovery erzeugt keine pending-Karten:** `resolve`/`seen` sind vom Manifest-Endpunkt getrennt (§6). Nur das reale Auflegen einer unbekannten Karte (`seen`) bzw. der klassische Manifest-Request registriert pending — nie das Auflösen der Prioritätsliste. |
+| 34 | **Sichtbarer Speicher (§13.2):** MediaHub-Daten können unter `/MediaHub/<hubKey>/` (kartübergreifend, nutzersichtbar) statt versteckt pro Karte liegen. AutoSync nutzt das Layout immer, explizite Zuweisungen per Opt-in. Wipe löscht im sichtbaren Layout nur Cache/Stale-Marker, nie `/MediaHub`-Inhalte; kein Migration bei Layout-Wechsel. |
+| 35 | **Re-Sync startet keine Wiedergabe (§11):** Nach einem stale-Re-Sync wird nicht automatisch gespielt — der nächste Tap spielt aus der vollständigen lokalen Kopie. Scheitert der Re-Sync, bleibt die alte, vollständige Kopie spielbarer Fallback und die Karte „stale". |
+| 36 | **Hub-seitiger Force Refresh über `force_epoch` (§9):** Der Zähler fließt in den `version`-Hash ein, erscheint aber nicht im Manifest; der ESPuino erkennt die Änderung über den normalen `version`-Check. Kein direkter Push vom Hub zum Gerät nötig. |
+| 37 | **MediaHub-Sync-Modifier-Karte (`CMD_MEDIAHUB_SYNC`, §5.6):** Synchronisiert alle gecachten Manifeste gegen ihren Hub (inkrementell, nie Wiedergabe startend) und aktualisiert die lokalen NVS-Zuweisungen — der Weg, Hub-Änderungen auf bereits lokal hinterlegte AutoSync-Karten zu ziehen. |
 
 ## 17. Implementierungsplan ESPuino-Seite (Phasen)
 
