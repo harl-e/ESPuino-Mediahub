@@ -12,6 +12,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import manifest as manifest_lib
 import media_library
 import store as store_lib
+from media_library import save_hash_cache
 from espuino_client import delete_rfid_on_device
 
 DATA_DIR, MEDIA_DIR, LANGUAGES = os.environ.get("MEDIAHUB_DATA", "/data"), os.environ.get("MEDIAHUB_MEDIA", "/media"), ["de", "en", "fr"]
@@ -235,7 +236,9 @@ def manifest_preview(card_id):
     _, assignment, _ = store.resolve(esp_id, card_id)
     if not assignment:
         return jsonify(error="no_assignment"), 404
-    return jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))
+    response = jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))
+    save_hash_cache()
+    return response
 
 @app.route("/media")
 def media_overview():
@@ -300,7 +303,9 @@ def card_manifest(esp_id, card_id):
             return jsonify(error="unknown_card", status="ignored"), 404
         return jsonify(error="not_assigned" if was_known else "unknown_card", status="pending"), 404
     store.touch_card_seen(esp_id, card_id, ts); log.info("Tag resolve: cardId=%s espId=%s source=%s", card_id, esp_id, source)
-    return jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))
+    response = jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))
+    save_hash_cache()
+    return response
 @app.route("/media/<path:filename>")
 def serve_media(filename): return send_from_directory(MEDIA_DIR, filename)
 

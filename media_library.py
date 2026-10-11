@@ -9,7 +9,17 @@ library root and lists/hashes files on demand.
 """
 
 import hashlib
+from collections import OrderedDict
+import json
 import os
+
+
+def _hash_cache_path():
+    # Cache lives under MEDIAHUB_DATA (writable), not the read-only media
+    # mount. Resolved lazily so importing this module never touches the FS.
+    import os as _os
+    data_dir = _os.environ.get("MEDIAHUB_DATA", "/data")
+    return _os.path.join(data_dir, "hash-cache.json")
 
 # Extensions the ESPuino firmware actually recognizes as playable audio
 # (see `fileValid()` / `audioFileSufix` in src/SdCard.cpp). Playlist formats
@@ -108,18 +118,61 @@ def list_audio_files_recursive(media_root, relpath, max_depth):
     return results
 
 
-# Process-wide SHA-256 cache: (size, mtime_ns) -> digest. Keyed by the
-# validated absolute path. A cached entry is only reused while both the size
-# and the nanosecond mtime are unchanged, so replacing a file in the library
-# invalidates it immediately. Bounded to keep a long-running container from
-# accumulating stale entries for files that were removed from the library.
-_HASH_CACHE = {}
+# Process-wide SHA-256 cache: (path, size, mtime_ns) -> digest. A cached
+# entry is only reused while both the size and the nanosecond mtime are
+# unchanged, so replacing a file in the library invalidates it immediately.
+# Backed by a JSON file under MEDIAHUB_DATA so a container restart doesn't
+# force a full re-hash of the library on the next manifest build. Bounded LRU:
+# the oldest entries are evicted first instead of dropping the whole cache.
+_HASH_CACHE = OrderedDict()
 _HASH_CACHE_MAX = 4096
+_HASH_CACHE_DIRTY = False
+
+def _load_hash_cache():
+    global _HASH_CACHE_DIRTY
+    if _HASH_CACHE:
+        return
+    path = _hash_cache_path()
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            entries = json.load(f)
+        if isinstance(entries, dict):
+            for key, digest in entries.items():
+                if isinstance(key, str) and isinstance(digest, str):
+                    try:
+                        _HASH_CACHE[tuple(json.loads(key))] = digest
+                    except (ValueError, TypeError):
+                        continue
+    except (OSError, ValueError):
+        pass
+    _HASH_CACHE_DIRTY = False
+
+def save_hash_cache():
+    """Persist the hash cache; call after manifest builds / at shutdown."""
+    global _HASH_CACHE_DIRTY
+    if not _HASH_CACHE_DIRTY or not _HASH_CACHE:
+        return
+    path = _hash_cache_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({json.dumps(list(k)): v for k, v in _HASH_CACHE.items()}, f)
+        os.replace(tmp, path)
+        _HASH_CACHE_DIRTY = False
+    except OSError:
+        pass
 
 def _cached_hash(abs_path, size, mtime_ns):
+    global _HASH_CACHE_DIRTY
+    _load_hash_cache()
     key = (abs_path, size, mtime_ns)
     digest = _HASH_CACHE.get(key)
     if digest is not None:
+        try:
+            _HASH_CACHE.move_to_end(key)
+        except AttributeError:
+            pass
         return digest
     hasher = hashlib.sha256()
     with open(abs_path, "rb") as f:
@@ -129,9 +182,10 @@ def _cached_hash(abs_path, size, mtime_ns):
                 break
             hasher.update(chunk)
     digest = hasher.hexdigest()
-    if len(_HASH_CACHE) >= _HASH_CACHE_MAX:
-        _HASH_CACHE.clear()
+    while len(_HASH_CACHE) >= _HASH_CACHE_MAX:
+        _HASH_CACHE.popitem(last=False)
     _HASH_CACHE[key] = digest
+    _HASH_CACHE_DIRTY = True
     return digest
 
 def stat_and_hash(media_root, relpath):
