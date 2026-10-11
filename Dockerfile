@@ -29,7 +29,11 @@ EXPOSE 8080
 # ESPuino on WiFi is much slower than a local client, so the 30s default
 # --timeout killed the worker mid-download every time. 600s is generous
 # enough for a large audiobook file even over a slow connection.
+# gthread (8 threads per worker) keeps a slow ESPuino download from
+# occupying the only worker: manifest/API requests are served by the
+# other threads while the transfer runs. --graceful-timeout matches
+# --timeout so a shutdown/restart doesn't kill an in-flight download.
 # --access-logfile - sends every request (manifest fetches, file downloads,
 # admin UI) to stdout, so `docker logs` shows them - there's no access
 # logging at all otherwise, Flask doesn't log requests under gunicorn.
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "600", "--access-logfile", "-", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "8", "--worker-class", "gthread", "--timeout", "600", "--graceful-timeout", "600", "--access-logfile", "-", "app:app"]
