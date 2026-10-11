@@ -12,6 +12,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import manifest as manifest_lib
 import media_library
 import store as store_lib
+from media_library import save_hash_cache
 from espuino_client import delete_rfid_on_device
 
 DATA_DIR, MEDIA_DIR, LANGUAGES = os.environ.get("MEDIAHUB_DATA", "/data"), os.environ.get("MEDIAHUB_MEDIA", "/media"), ["de", "en", "fr"]
@@ -70,9 +71,14 @@ def login():
 @app.route("/logout", methods=["POST"])
 def logout(): session.pop("authenticated", None); return redirect(url_for("index"))
 
-def _assignment_files(assignment):
+def _assignment_files(assignment, depth=None):
     if not assignment or assignment.get("kind") == "webradio": return []
-    return manifest_lib.resolve_files(assignment, MEDIA_DIR, store.get_settings()["recursion_depth"])
+    return manifest_lib.resolve_files(assignment, MEDIA_DIR, store.get_settings()["recursion_depth"] if depth is None else depth)
+def _assignment_size(assignment, depth):
+    """Total bytes of an assignment without hashing: stat() only, so the
+    index page's total_bytes doesn't hash the whole library on a cold cache."""
+    if not assignment or assignment.get("kind") != "files": return 0
+    return sum(size for size in (media_library.stat_size(MEDIA_DIR, path) for path in manifest_lib.resolve_paths(assignment, MEDIA_DIR, depth)) if size is not None)
 def _content_label(assignment):
     if not assignment: return "—"
     if assignment.get("kind") == "webradio": return "📻 " + _("Webradio")
@@ -99,7 +105,8 @@ def _return_cards():
 @app.route("/")
 def index():
     tags, devices = store.list_cards(), store.list_devices()
-    return render_template("index.html", device_label=ngettext("%(num)s device", "%(num)s devices", len(devices)) % {"num": len(devices)}, pending_count=sum(t.get("status") == "pending" for t in tags.values()), assigned_count=sum(t.get("status") == "assigned" for t in tags.values()), total_bytes=sum(f["size"] for t in tags.values() for a in [t.get("default_assignment")] + list(t.get("overrides", {}).values()) if a and a.get("kind") == "files" for f in _assignment_files(a)))
+    depth = store.get_settings()["recursion_depth"]
+    return render_template("index.html", device_label=ngettext("%(num)s device", "%(num)s devices", len(devices)) % {"num": len(devices)}, pending_count=sum(t.get("status") == "pending" for t in tags.values()), assigned_count=sum(t.get("status") == "assigned" for t in tags.values()), total_bytes=sum(_assignment_size(a, depth) for t in tags.values() for a in [t.get("default_assignment")] + list(t.get("overrides", {}).values()) if a and a.get("kind") == "files"))
 @app.route("/health")
 def health(): return jsonify(status="ok", service="espuino-mediahub")
 
@@ -235,14 +242,17 @@ def manifest_preview(card_id):
     _, assignment, _ = store.resolve(esp_id, card_id)
     if not assignment:
         return jsonify(error="no_assignment"), 404
-    return jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))
+    response = jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))
+    save_hash_cache()
+    return response
 
 @app.route("/media")
 def media_overview():
     rows = []
+    depth = store.get_settings()["recursion_depth"]
     for tag in store.list_cards().values():
         for source, a in [("global", tag.get("default_assignment"))] + list(tag.get("overrides", {}).items()):
-            if a and a.get("kind") == "files": rows.append((tag, source, len(_assignment_files(a))))
+            if a and a.get("kind") == "files": rows.append((tag, source, len(manifest_lib.resolve_paths(a, MEDIA_DIR, depth))))
     return render_template("media.html", rows=rows)
 @app.route("/media/browse")
 def media_browse():
@@ -300,8 +310,10 @@ def card_manifest(esp_id, card_id):
             return jsonify(error="unknown_card", status="ignored"), 404
         return jsonify(error="not_assigned" if was_known else "unknown_card", status="pending"), 404
     store.touch_card_seen(esp_id, card_id, ts); log.info("Tag resolve: cardId=%s espId=%s source=%s", card_id, esp_id, source)
-    return jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))
+    response = jsonify(manifest_lib.build_manifest(card_id, assignment, url_for("serve_media", filename="", _external=True), MEDIA_DIR, store.get_settings()["recursion_depth"]))
+    save_hash_cache()
+    return response
 @app.route("/media/<path:filename>")
-def serve_media(filename): return send_from_directory(MEDIA_DIR, filename)
+def serve_media(filename): return send_from_directory(MEDIA_DIR, filename, conditional=True)
 
 if __name__ == "__main__": app.run(host="0.0.0.0", port=8080, debug=True)
